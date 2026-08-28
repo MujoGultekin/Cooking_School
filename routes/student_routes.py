@@ -45,8 +45,13 @@ def enroll(session_id):
 
 
 @student_bp.route("/cancel/<int:session_id>", methods=["POST"])
-def cancel(session_id, day_of_week, start_time):
+@login_required
+def cancel(session_id):
     """Derse 12 saat kala yapılan iptal işlemi (Otomatik FIFO bekleme listesi tetiklenir)."""
+    # Form verilerini request üzerinden çekiyoruz
+    day_of_week = request.form.get("day_of_week")
+    start_time = request.form.get("start_time")
+
     if not can_cancel_enrollment(day_of_week, start_time):
         flash("Enrollment cannot be cancelled less than 12 hours before start time.", "danger")
         return redirect(url_for("student.profile"))
