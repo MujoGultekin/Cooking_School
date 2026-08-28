@@ -4,6 +4,7 @@ from flask_login import current_user, login_required
 from dao.class_dao import create_cooking_class, create_class_session, get_manager_classes
 from dao.image_dao import save_quest_image  # Görsel yükleme yardımcısı
 from dao.stats_dao import get_manager_statistics
+from utils import manager_required
 
 manager_bp = Blueprint("manager", __name__, url_prefix="/manager")
 

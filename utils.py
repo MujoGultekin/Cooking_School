@@ -1,3 +1,6 @@
+from functools import wraps
+from flask import flash, redirect, url_for
+from flask_login import current_user
 from config import SIMULATED_CURRENT_DAY, SIMULATED_CURRENT_TIME
 
 # Haftanın günlerini sıraya koymak için indeks haritası
@@ -57,3 +60,24 @@ def is_session_past(session_day, session_start_time):
         return session_minutes <= current_minutes
 
     return False
+
+def student_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != "student":
+            flash("This page is reserved for students only.", "danger")
+            return redirect(url_for("home.index"))
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def manager_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != "manager":
+            flash("Access denied. Manager privileges required.", "danger")
+            return redirect(url_for("home.index"))
+        return f(*args, **kwargs)
+
+    return decorated_function

@@ -57,12 +57,25 @@ def get_manager_statistics(manager_id):
     top_rated_row = cursor.fetchone()
     top_rated_class = top_rated_row["title"] if top_rated_row else "N/A"
 
+    # 6. Genel Ortalama Puan (Şablonun aradığı eksik alan!)
+    cursor.execute("""
+        SELECT AVG(r.score) AS avg_score
+        FROM ratings r
+        JOIN class_sessions s ON r.session_id = s.id
+        JOIN cooking_classes c ON s.class_id = c.id
+        WHERE c.manager_id = ?
+    """, (manager_id,))
+    avg_score_row = cursor.fetchone()
+    avg_school_rating = round(avg_score_row["avg_score"], 1) if (avg_score_row and avg_score_row["avg_score"]) else 0.0
+
     close_db(conn)
+    
     return {
         "total_classes": counts["total_classes"],
         "total_sessions": counts["total_sessions"],
         "total_enrollments": enrollments,
         "total_waiting": waiting,
         "top_cuisine": top_cuisine,
-        "top_rated_class": top_rated_class
+        "top_rated_class": top_rated_class,
+        "avg_school_rating": avg_school_rating  # Eksik olan attribute buraya eklendi
     }
