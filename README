@@ -1,0 +1,78 @@
+========================================================================
+             GOURMET CULINARY ACADEMY — TEST & EVALUATION INFO
+========================================================================
+
+PROJECT OVERVIEW:
+This web application is a Cooking School Management & Enrollment System.
+Built with Python (Flask), SQLite3, HTML5, and CSS3.
+
+------------------------------------------------------------------------
+1. SIMULATED TIME & DAY FOR EVALUATION
+------------------------------------------------------------------------
+The system assumes the current system time is set to:
+  - Day: Thursday
+  - Time: 14:00
+
+------------------------------------------------------------------------
+2. PRE-CONFIGURED TEST ACCOUNTS (Password for ALL accounts: password123)
+------------------------------------------------------------------------
+
+[MANAGERS] (Can create classes, add sessions, view stats):
+  1. Email: chef.mario@culinary.com
+     Password: password123
+     Role: Manager (Manager ID: 1)
+
+  2. Email: chef.gordon@culinary.com
+     Password: password123
+     Role: Manager (Manager ID: 2)
+
+[STUDENTS] (Can enroll, cancel enrollments, join waiting lists, rate classes):
+  1. Email: student.alice@gmail.com
+     Password: password123
+     Role: Student
+
+  2. Email: student.bob@gmail.com
+     Password: password123
+     Role: Student
+
+  3. Email: student.charlie@gmail.com
+     Password: password123
+     Role: Student
+
+  4. Email: student.diana@gmail.com
+     Password: password123
+     Role: Student
+
+------------------------------------------------------------------------
+3. PRE-LOADED DATA SCENARIOS FOR TESTING REQUIREMENTS
+------------------------------------------------------------------------
+- Class 1: "Mastering Fresh Pasta" (Italian)
+  - Session 1 (ID: 1) -> Monday 10:00 (FULL - Capacity: 2/2). Rated by Alice (5) and Bob (4).
+  - Session 3 (ID: 3) -> Friday 11:00 (Available - Capacity: 10). Eligible for cancellation (>12 hrs).
+
+- Class 2: "Authentic Ramen & Gyoza" (Japanese)
+  - Session 4 (ID: 4) -> Thursday 18:00 (FULL - Capacity: 2/2).
+    * Enrolled: Alice & Bob
+    * Waiting List Position #1: Charlie Brown (Join waiting list test)
+
+- Class 3: "Plant-Based Mexican Feast" (Mexican / Vegan)
+  - Session 2 (ID: 2) -> Wednesday 16:00 (Past Session). Alice enrolled and rated (5).
+
+- Class 4: "Gluten-Free French Pastry" (French / Gluten-free)
+  - Session 5 (ID: 5) -> Saturday 14:00 (Open for enrollment).
+
+------------------------------------------------------------------------
+4. HOW TO RUN THE APPLICATION LOCALLY
+------------------------------------------------------------------------
+1. Install dependencies:
+   pip install -r requirements.txt
+
+2. Initialize database schema & test data:
+   python init_db.py
+
+3. Run Flask development server:
+   python app.py
+
+4. Open browser at:
+   http://127.0.0.1:5000/
+========================================================================

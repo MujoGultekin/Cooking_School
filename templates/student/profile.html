@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile — Culinary Academy{% endblock %}
+
+{% block content %}
+<header class="mb-4">
+    <h1 class="h2 fw-bold">Student Profile</h1>
+    <p class="text-muted">Welcome back, {{ current_user.first_name }}! Manage your class enrollments and waiting list here.</p>
+</header>
+
+<div class="row g-4">
+    <!-- Enrolled Classes -->
+    <section class="col-lg-7">
+        <div class="card card-culinary p-4 mb-4">
+            <h2 class="h4 fw-bold mb-3">My Enrolled Sessions</h2>
+            {% if enrollments %}
+                <div class="list-group list-group-flush">
+                    {% for e in enrollments %}
+                        <div class="list-group-item bg-transparent px-0 py-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h3 class="h5 fw-bold mb-1">{{ e.class_title }}</h3>
+                                    <span class="badge bg-primary">{{ e.cuisine }}</span>
+                                    <span class="text-muted small ms-2">📅 {{ e.day_of_week }} at {{ e.start_time }} ({{ e.kitchen_name }})</span>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                                <!-- Cancellation Action -->
+                                <form method="post" action="{{ url_for('student.cancel', session_id=e.session_id) }}">
+                                    <input type="hidden" name="day_of_week" value="{{ e.day_of_week }}">
+                                    <input type="hidden" name="start_time" value="{{ e.start_time }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this enrollment?')">Cancel Registration</button>
+                                </form>
+
+                                <!-- Rating Action (Past/Completed Classes) -->
+                                {% if e.is_past %}
+                                    <form method="post" action="{{ url_for('student.rate_session', session_id=e.session_id) }}" class="d-flex align-items-center gap-1">
+                                        <select name="score" class="form-select form-select-sm" required>
+                                            <option value="" disabled selected>Rate</option>
+                                            <option value="5">5 ⭐⭐⭐⭐⭐</option>
+                                            <option value="4">4 ⭐⭐⭐⭐</option>
+                                            <option value="3">3 ⭐⭐⭐</option>
+                                            <option value="2">2 ⭐⭐</option>
+                                            <option value="1">1 ⭐</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-warning">Submit</button>
+                                    </form>
+                                {% else %}
+                                    <span class="badge bg-light text-muted border">Rating available after class completion</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted mb-0">You are not currently enrolled in any cooking classes.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Waiting List Status -->
+    <section class="col-lg-5">
+        <div class="card card-culinary p-4">
+            <h2 class="h4 fw-bold mb-3">My Waiting List Status</h2>
+            {% if waiting_sessions %}
+                <div class="list-group list-group-flush">
+                    {% for w in waiting_sessions %}
+                        <div class="list-group-item bg-transparent px-0 py-3">
+                            <h3 class="h6 fw-bold mb-1">{{ w.class_title }}</h3>
+                            <p class="small text-muted mb-2">📅 {{ w.day_of_week }} at {{ w.start_time }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-warning text-dark">Queue Position: #{{ w.position }}</span>
+                                <form method="post" action="{{ url_for('student.leave_waiting', session_id=w.session_id) }}">
+                                    <button type="submit" class="btn btn-sm btn-link text-danger p-0 text-decoration-none">Leave List</button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted mb-0">You are not on any waiting lists.</p>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Session — Culinary Academy{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <section class="col-md-6 col-lg-5">
+        <div class="card card-culinary p-4">
+            <header class="mb-4 text-center">
+                <h1 class="h3 fw-bold">Schedule Class Session</h1>
+                <p class="text-muted small">Add a new weekly time slot for this cooking class</p>
+            </header>
+
+            <form method="post" action="{{ url_for('manager.create_session', class_id=class_id) }}">
+                <div class="mb-3">
+                    <label for="day_of_week" class="form-label">Day of Week</label>
+                    <select class="form-select" id="day_of_week" name="day_of_week" required>
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="start_time" class="form-label">Start Time</label>
+                    <input type="time" class="form-control" id="start_time" name="start_time" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="kitchen_name" class="form-label">Kitchen Name / Lab</label>
+                    <input type="text" class="form-control" id="kitchen_name" name="kitchen_name" required placeholder="e.g. Kitchen Alpha">
+                </div>
+
+                <div class="mb-4">
+                    <label for="max_capacity" class="form-label">Max Student Capacity</label>
+                    <input type="number" class="form-control" id="max_capacity" name="max_capacity" min="1" max="30" value="10" required>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('manager.dashboard') }}" class="btn btn-outline-secondary w-50">Cancel</a>
+                    <button type="submit" class="btn btn-success w-50 fw-bold">Save Session</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+{% endblock %}

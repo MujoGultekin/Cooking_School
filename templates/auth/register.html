@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Register — Culinary Academy{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <section class="col-md-8 col-lg-6">
+        <div class="card card-culinary p-4">
+            <header class="text-center mb-4">
+                <h1 class="h3 fw-bold">Create an Account</h1>
+                <p class="text-muted small">Register as a Student or Cooking School Manager</p>
+            </header>
+            <form method="post" action="{{ url_for('auth.register') }}">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="first_name" name="first_name" required placeholder="John">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="last_name" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" required placeholder="Doe">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email address</label>
+                    <input type="email" class="form-control" id="email" name="email" required placeholder="name@example.com">
+                </div>
+
+                <div class="mb-3">
+                    <label for="role" class="form-label">I want to register as a</label>
+                    <select class="form-select" id="role" name="role" required>
+                        <option value="Student" selected>Student (Enroll in classes)</option>
+                        <option value="Manager">Cooking School Manager (Manage classes)</option>
+                    </select>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" minlength="6" required placeholder="Min 6 characters">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" minlength="6" required placeholder="Repeat password">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-warning w-100 mb-3 fw-bold">Register Account</button>
+            </form>
+            <footer class="text-center">
+                <p class="small text-muted mb-0">Already registered? <a href="{{ url_for('auth.login') }}">Login here</a></p>
+            </footer>
+        </div>
+    </section>
+</div>
+{% endblock %}

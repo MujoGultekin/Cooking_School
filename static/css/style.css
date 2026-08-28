@@ -1,0 +1,85 @@
+/* Culinary Academy Custom Styles */
+
+body {
+    background-color: #fdfbf7;
+    color: #2c3e50;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Header & Navbar */
+.bg-culinary {
+    background-color: #1b2a47;
+}
+
+.navbar-dark .navbar-brand {
+    color: #e6c687;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.navbar-dark .nav-link {
+    color: #f4ebd9;
+}
+
+.navbar-dark .nav-link:hover {
+    color: #e6c687;
+}
+
+/* Hero & Banners */
+.hero-banner {
+    background-color: #2c3e50;
+    color: #ffffff;
+    border-radius: 8px;
+    padding: 2.5rem 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.hero-banner h1 {
+    color: #e6c687;
+}
+
+/* Cards & Badges */
+.card-culinary {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+.card-culinary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+.class-img {
+    height: 200px;
+    object-fit: cover;
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+}
+
+.gallery-img {
+    height: 220px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+/* Rating Badges */
+.badge-rating {
+    background-color: #f39c12;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Footer */
+.site-footer {
+    background-color: #1b2a47;
+    color: #f4ebd9;
+}
