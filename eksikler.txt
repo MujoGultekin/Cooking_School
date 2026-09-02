@@ -1,0 +1,2 @@
+1) config mantigi benim kafami karistirdi bir seyler yanlis uygulama gercek zamanli olmak yerine fix bir tarihe gore calisiyor bunu duzeltmem lazim
+2) fotograf eklendiginde ayni isimde iki fotograf var ise rastgele isim atayan bir sistem gelistirmem lazim

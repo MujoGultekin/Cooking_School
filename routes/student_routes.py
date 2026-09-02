@@ -27,13 +27,27 @@ def check_student_role():
 @login_required
 def profile():
     """Öğrenci profili: Aktif kayıtlar, geçmiş dersler ve bekleme listesi durumu."""
-    enrollments = get_student_enrollments(current_user.id)
+    raw_enrollments = get_student_enrollments(current_user.id)
     waiting_sessions = get_student_waiting_list(current_user.id)
-    
+
+    processed_enrollments = []
+    for item in raw_enrollments:
+        # SQLite Row objesini değiştirilebilir dict'e çeviriyoruz
+        enroll_data = dict(item)
+
+        day = enroll_data.get("day_of_week")
+        time_str = enroll_data.get("start_time")
+
+        # Zaman kontrollerini yapıp dict'e ekliyoruz
+        enroll_data["is_past"] = is_session_past(day, time_str)
+        enroll_data["can_cancel"] = can_cancel_enrollment(day, time_str)
+
+        processed_enrollments.append(enroll_data)
+
     return render_template(
-        "student/profile.html", 
-        enrollments=enrollments, 
-        waiting_sessions=waiting_sessions
+        "student/profile.html",
+        enrollments=processed_enrollments,
+        waiting_sessions=waiting_sessions,
     )
 
 @student_bp.route("/enroll/<int:session_id>", methods=["POST"])
