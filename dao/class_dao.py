@@ -102,18 +102,50 @@ def create_cooking_class(manager_id, title, cuisine, difficulty, duration, dieta
         close_db(conn)
         return False, f"Failed to create class: {str(e)}"
 
-def create_class_session(class_id, day_of_week, start_time, kitchen_name, max_capacity=10):
-    """Kursa yeni seans ekler."""
+def create_class_session(
+    class_id, day_of_week, start_time, kitchen_name, max_capacity=10
+):
+    """Kursa yeni seans ekler. Mutfak, gün ve saat çakışmasını kontrol eder."""
     conn = get_db()
     cursor = conn.cursor()
     try:
-        cursor.execute("""
+        # Metinleri temizle ve standart hale getir (küçük harf + baştaki/sondaki boşlukları kes)
+        clean_kitchen = kitchen_name.strip()
+        clean_day = day_of_week.strip()
+        clean_time = start_time.strip()
+
+        # 1. ÇAKIŞMA KONTROLÜ (NOCASE ile büyük/küçük harf duyarsız kontrol)
+        cursor.execute(
+            """
+            SELECT id FROM class_sessions 
+            WHERE LOWER(TRIM(kitchen_name)) = LOWER(?) 
+              AND LOWER(TRIM(day_of_week)) = LOWER(?) 
+              AND TRIM(start_time) = TRIM(?)
+        """,
+            (clean_kitchen, clean_day, clean_time),
+        )
+
+        existing_session = cursor.fetchone()
+        if existing_session:
+            close_db(conn)
+            return (
+                False,
+                f"The kitchen '{clean_kitchen}' is already booked on {clean_day} at {clean_time}.",
+            )
+
+        # 2. Çakışma yoksa yeni seansı ekle
+        cursor.execute(
+            """
             INSERT INTO class_sessions (class_id, day_of_week, start_time, kitchen_name, max_capacity)
             VALUES (?, ?, ?, ?, ?)
-        """, (class_id, day_of_week, start_time, kitchen_name, max_capacity))
+        """,
+            (class_id, clean_day, clean_time, clean_kitchen, max_capacity),
+        )
+
         conn.commit()
         close_db(conn)
         return True, "Session added successfully!"
+
     except Exception as e:
         close_db(conn)
         return False, f"Failed to add session: {str(e)}"
