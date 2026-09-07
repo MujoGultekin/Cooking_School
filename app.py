@@ -19,6 +19,15 @@ login_manager.login_view = "auth.login"
 login_manager.login_message_category = "danger"
 login_manager.init_app(app)
 
+@app.after_request
+def add_header(response):
+    response.headers["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0"
+    )
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "-1"
+    return response
+
 
 @login_manager.user_loader
 def load_user(user_id):
