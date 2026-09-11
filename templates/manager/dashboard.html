@@ -8,7 +8,7 @@
     <a href="{{ url_for('manager.create_class') }}" class="btn btn-primary">+ Create New Class</a>
 </header>
 
-<!-- İstatistik Paneli (Prova Finale Requirement) -->
+<!-- İstatistik Paneli -->
 <section class="row g-3 mb-4">
     <article class="col-md-3">
         <div class="card card-culinary p-3 text-center">
@@ -44,11 +44,21 @@
             <article class="card card-culinary mb-4 p-3">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <div>
-                        <h3 class="h5 fw-bold mb-1">{{ item.class.title }}</h3>
+                        <h3 class="h5 fw-bold mb-1 d-inline-block me-2">{{ item.class.title }}</h3>
                         <span class="badge bg-primary">{{ item.class.cuisine }}</span>
                         <span class="badge bg-secondary">{{ item.class.difficulty }}</span>
                     </div>
-                    <a href="{{ url_for('manager.create_session', class_id=item.class.id) }}" class="btn btn-sm btn-outline-success">+ Add Session</a>
+                    
+                    <div class="d-flex gap-2">
+                        <!-- KURAL 1: Seansı yoksa Edit butonu aktif, varsa engellenir -->
+                        {% if item.can_edit %}
+                            <a href="{{ url_for('manager.edit_class', class_id=item.class.id) }}" class="btn btn-sm btn-outline-primary">Edit Class</a>
+                        {% else %}
+                            <span class="badge bg-light text-muted border align-self-center">Cannot Edit (Has Sessions)</span>
+                        {% endif %}
+
+                        <a href="{{ url_for('manager.create_session', class_id=item.class.id) }}" class="btn btn-sm btn-outline-success">+ Add Session</a>
+                    </div>
                 </div>
 
                 <div class="table-responsive">
@@ -59,6 +69,7 @@
                                 <th>Kitchen</th>
                                 <th>Capacity</th>
                                 <th>Status</th>
+                                <th class="text-end">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -74,10 +85,20 @@
                                             <span class="badge bg-success">{{ s.available_slots }} Slots Left</span>
                                         {% endif %}
                                     </td>
+                                    <td class="text-end">
+                                        <!-- KURAL 2: Kayıtlı öğrenci yoksa Cancel butonu aktif, varsa engellenir -->
+                                        {% if s.enrolled_count == 0 %}
+                                            <form action="{{ url_for('manager.cancel_session', session_id=s.id) }}" method="POST" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this session?')">Cancel Session</button>
+                                            </form>
+                                        {% else %}
+                                            <span class="badge bg-light text-muted border">Enrolled Students Exist</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             {% else %}
                                 <tr>
-                                    <td colspan="4" class="text-muted text-center py-2">No active sessions for this class yet.</td>
+                                    <td colspan="5" class="text-muted text-center py-2">No active sessions for this class yet.</td>
                                 </tr>
                             {% endfor %}
                         </tbody>

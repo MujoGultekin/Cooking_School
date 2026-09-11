@@ -39,7 +39,6 @@ def get_class_by_id(class_id):
         close_db(conn)
         return None, []
 
-    # Kurse ait seansları ve kayıtlı/kalan kontenjan sayılarını getir
     cursor.execute("""
         SELECT s.*, 
                COUNT(e.id) AS enrolled_count,
@@ -62,7 +61,7 @@ def get_class_by_id(class_id):
     return class_data, sessions
 
 def get_manager_classes(manager_id):
-    """Yöneticinin açtığı kursları ve bu kurslara ait seans detaylarını getirir."""
+    """Yöneticinin açtığı kursları, seanslarını ve düzenlenme durumlarını getirir."""
     conn = get_db()
     cursor = conn.cursor()
     
@@ -81,7 +80,15 @@ def get_manager_classes(manager_id):
             GROUP BY s.id
         """, (c["id"],))
         sessions = cursor.fetchall()
-        manager_data.append({"class": c, "sessions": sessions})
+        
+        # Dersi düzenleyip düzenleyemeyeceğini kontrol et
+        can_edit = len(sessions) == 0
+        
+        manager_data.append({
+            "class": c, 
+            "sessions": sessions,
+            "can_edit": can_edit
+        })
 
     close_db(conn)
     return manager_data
@@ -102,25 +109,51 @@ def create_cooking_class(manager_id, title, cuisine, difficulty, duration, dieta
         close_db(conn)
         return False, f"Failed to create class: {str(e)}"
 
-def create_class_session(
-    class_id, day_of_week, start_time, kitchen_name, max_capacity=10
-):
+def can_edit_class(class_id):
+    """Dersin henüz hiç seansı yoksa True döner (Düzenlenebilir)."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) as count FROM class_sessions WHERE class_id = ?", (class_id,))
+    count = cursor.fetchone()["count"]
+    close_db(conn)
+    return count == 0
+
+def update_cooking_class(class_id, title, cuisine, difficulty, duration, dietary_category, chef_name, ingredients, description):
+    """Ders bilgilerini günceller. Seansı varsa güncellenmez."""
+    if not can_edit_class(class_id):
+        return False, "Cannot edit class because class sessions have already been scheduled for it."
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE cooking_classes 
+            SET title = ?, cuisine = ?, difficulty = ?, duration = ?, 
+                dietary_category = ?, chef_name = ?, ingredients = ?, description = ?
+            WHERE id = ?
+        """, (title, cuisine, difficulty, duration, dietary_category, chef_name, ingredients, description, class_id))
+        conn.commit()
+        close_db(conn)
+        return True, "Class updated successfully!"
+    except Exception as e:
+        close_db(conn)
+        return False, f"Failed to update class: {str(e)}"
+
+def create_class_session(class_id, day_of_week, start_time, kitchen_name, max_capacity=10):
     """Kursa yeni seans ekler. Mutfak, gün ve saat çakışmasını kontrol eder."""
     conn = get_db()
     cursor = conn.cursor()
     try:
-        # Metinleri temizle ve standart hale getir (küçük harf + baştaki/sondaki boşlukları kes)
         clean_kitchen = kitchen_name.strip()
         clean_day = day_of_week.strip()
         clean_time = start_time.strip()
 
-        # 1. ÇAKIŞMA KONTROLÜ (NOCASE ile büyük/küçük harf duyarsız kontrol)
         cursor.execute(
             """
             SELECT id FROM class_sessions 
             WHERE LOWER(TRIM(kitchen_name)) = LOWER(?) 
               AND LOWER(TRIM(day_of_week)) = LOWER(?) 
-              AND TRIM(start_time) = TRIM(?)
+              AND SUBSTR(TRIM(start_time), 1, 5) = SUBSTR(TRIM(?), 1, 5)
         """,
             (clean_kitchen, clean_day, clean_time),
         )
@@ -130,10 +163,9 @@ def create_class_session(
             close_db(conn)
             return (
                 False,
-                f"The kitchen '{clean_kitchen}' is already booked on {clean_day} at {clean_time}.",
+                f"The kitchen '{clean_kitchen}' is already booked on {clean_day} at {clean_time[:5]}.",
             )
 
-        # 2. Çakışma yoksa yeni seansı ekle
         cursor.execute(
             """
             INSERT INTO class_sessions (class_id, day_of_week, start_time, kitchen_name, max_capacity)
@@ -149,3 +181,29 @@ def create_class_session(
     except Exception as e:
         close_db(conn)
         return False, f"Failed to add session: {str(e)}"
+
+def delete_class_session(session_id):
+    """Seansı siler/iptal eder. Ancak kaydolmuş öğrenci varsa engel olur."""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        # Seansa kayıtlı öğrenci sayısını kontrol et
+        cursor.execute("SELECT COUNT(*) as count FROM enrollments WHERE session_id = ?", (session_id,))
+        enrolled_count = cursor.fetchone()["count"]
+
+        if enrolled_count > 0:
+            close_db(conn)
+            return False, "Cannot delete or modify session because students have already enrolled in it."
+
+        # Öğrenci yoksa seansı ve varsa bekleme listesini temizle
+        cursor.execute("DELETE FROM waiting_list WHERE session_id = ?", (session_id,))
+        cursor.execute("DELETE FROM class_sessions WHERE id = ?", (session_id,))
+        
+        conn.commit()
+        close_db(conn)
+        return True, "Session cancelled successfully!"
+
+    except Exception as e:
+        close_db(conn)
+        return False, f"Failed to cancel session: {str(e)}"

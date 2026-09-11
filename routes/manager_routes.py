@@ -1,7 +1,15 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from dao.class_dao import create_cooking_class, create_class_session, get_manager_classes
+from dao.class_dao import (
+    can_edit_class,
+    create_class_session,
+    create_cooking_class,
+    delete_class_session,
+    get_class_by_id,
+    get_manager_classes,
+    update_cooking_class,
+)
 from dao.image_dao import save_quest_image  # Görsel yükleme yardımcısı
 from dao.stats_dao import get_manager_statistics
 from utils import manager_required
@@ -67,14 +75,46 @@ def create_class():
             description=description,
             photo_1=photos[0],
             photo_2=photos[1],
-            photo_3=photos[2]
+            photo_3=photos[2],
         )
-        
+
         flash(msg, "success" if ok else "danger")
         if ok:
             return redirect(url_for("manager.dashboard"))
 
     return render_template("manager/create_class.html")
+
+
+@manager_bp.route("/class/edit/<int:class_id>", methods=["GET", "POST"])
+def edit_class(class_id):
+    """Ders düzenleme rotası (yalnızca hiç seans açılmamışsa izin verir)."""
+    if not can_edit_class(class_id):
+        flash("You cannot edit this class because class sessions have already been scheduled for it.", "warning")
+        return redirect(url_for("manager.dashboard"))
+
+    class_data, _ = get_class_by_id(class_id)
+    if not class_data:
+        flash("Class not found.", "danger")
+        return redirect(url_for("manager.dashboard"))
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        cuisine = request.form.get("cuisine", "").strip()
+        difficulty = request.form.get("difficulty", "").strip()
+        duration = request.form.get("duration", type=int)
+        dietary_category = request.form.get("dietary_category", "").strip()
+        chef_name = request.form.get("chef_name", "").strip()
+        ingredients = request.form.get("ingredients", "").strip()
+        description = request.form.get("description", "").strip()
+
+        ok, msg = update_cooking_class(
+            class_id, title, cuisine, difficulty, duration, dietary_category, chef_name, ingredients, description
+        )
+        flash(msg, "success" if ok else "danger")
+        if ok:
+            return redirect(url_for("manager.dashboard"))
+
+    return render_template("manager/edit_class.html", class_data=class_data)
 
 
 @manager_bp.route("/session/create/<int:class_id>", methods=["GET", "POST"])
@@ -92,3 +132,11 @@ def create_session(class_id):
             return redirect(url_for("manager.dashboard"))
 
     return render_template("manager/create_session.html", class_id=class_id)
+
+
+@manager_bp.route("/session/delete/<int:session_id>", methods=["POST"])
+def cancel_session(session_id):
+    """Seansı iptal etme / silme rotası (yalnızca hiç kayıtlı öğrenci yoksa izin verir)."""
+    ok, msg = delete_class_session(session_id)
+    flash(msg, "success" if ok else "danger")
+    return redirect(url_for("manager.dashboard"))

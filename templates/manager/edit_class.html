@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Cooking Class - Culinary Academy{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Edit Cooking Class</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('manager.edit_class', class_id=class_data.id) }}">
+                        
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Class Title</label>
+                            <input type="text" class="form-control" id="title" name="title" value="{{ class_data.title }}" required>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="cuisine" class="form-label">Cuisine Type</label>
+                                <input type="text" class="form-control" id="cuisine" name="cuisine" value="{{ class_data.cuisine }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="difficulty" class="form-label">Difficulty</label>
+                                <select class="form-select" id="difficulty" name="difficulty" required>
+                                    <option value="Beginner" {% if class_data.difficulty == 'Beginner' %}selected{% endif %}>Beginner</option>
+                                    <option value="Intermediate" {% if class_data.difficulty == 'Intermediate' %}selected{% endif %}>Intermediate</option>
+                                    <option value="Advanced" {% if class_data.difficulty == 'Advanced' %}selected{% endif %}>Advanced</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="duration" class="form-label">Duration (minutes)</label>
+                                <input type="number" class="form-control" id="duration" name="duration" value="{{ class_data.duration }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="dietary_category" class="form-label">Dietary Category</label>
+                                <input type="text" class="form-control" id="dietary_category" name="dietary_category" value="{{ class_data.dietary_category }}" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="chef_name" class="form-label">Chef Name</label>
+                            <input type="text" class="form-control" id="chef_name" name="chef_name" value="{{ class_data.chef_name }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="ingredients" class="form-label">Ingredients (Separated by commas, min 4)</label>
+                            <textarea class="form-control" id="ingredients" name="ingredients" rows="3" required>{{ class_data.ingredients }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Class Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required>{{ class_data.description }}</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <a href="{{ url_for('manager.dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary px-4">Update Class</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
