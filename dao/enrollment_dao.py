@@ -33,7 +33,6 @@ def enroll_or_join_waiting_list(student_id, session_id):
             return False, "You are already enrolled in this session."
 
         # 3. ZAMAN ÇAKIŞMASI KONTROLÜ (TIME CONFLICT)
-        # Öğrencinin aynı gün ve saatte AKTİF başka bir kayıtlı dersi var mı?
         cursor.execute(
             """
             SELECT e.id 
@@ -51,7 +50,19 @@ def enroll_or_join_waiting_list(student_id, session_id):
                 f"You already have another class scheduled on {target_day} at {target_time[:5]}.",
             )
 
-        # 4. Kontenjan kontrolü
+        # 4. HAFTALIK MAKSİMUM 4 SEANS LİMİTİ KONTROLÜ (EKLENEN KISIM)
+        cursor.execute(
+            "SELECT COUNT(*) as total_enrolled FROM enrollments WHERE student_id = ?",
+            (student_id,),
+        )
+        total_enrolled = cursor.fetchone()["total_enrolled"]
+        if total_enrolled >= 4:
+            return (
+                False,
+                "Weekly enrollment limit reached. You cannot enroll in more than 4 sessions per week.",
+            )
+
+        # 5. Kontenjan kontrolü
         if session["enrolled_count"] < session["max_capacity"]:
             # Kontenjan var -> Kaydet
             cursor.execute(
