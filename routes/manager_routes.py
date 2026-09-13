@@ -30,88 +30,98 @@ def check_manager_role():
 def dashboard():
     """Yönetici paneli: Açılan kurslar, seanslar ve 5 temel istatistik göstergesi."""
     classes = get_manager_classes(current_user.id) or []
-    stats = get_manager_statistics(current_user.id) or {}
+    raw_stats = get_manager_statistics(current_user.id) or {}
 
-    # sqlite3.Row dönüyorsa dict'e çevirelim veya güvenli erişim sağlayalım
-    if isinstance(stats, dict):
-        stats = dict(stats)
+    # stats verisini dict yapısına dönüştür
+    stats = {}
+    if isinstance(raw_stats, dict):
+        stats = dict(raw_stats)
     else:
         try:
-            stats = dict(stats)
+            stats = dict(raw_stats)
         except Exception:
             stats = {}
 
-    # 1. Toplam Ders ve Seans Sayısı
-    stats["total_classes"] = len(classes)
-    stats["total_sessions"] = sum(len(item.get("sessions", []) if isinstance(item, dict) else item["sessions"]) for item in classes)
-
-    # 2. Toplam Kayıt Sayısı (Total Enrollments)
+    # Hesaplama değişkenleri
+    total_sessions = 0
     total_enrollments = 0
     total_waiting = 0
+    cuisine_counter = Counter()
     
+    best_class_title = None
+    highest_rating = -1.0
+
     for item in classes:
-        # item dictionary mi sqlite3.Row mu kontrol et
-        sessions = item["sessions"] if isinstance(item, (dict, list)) and "sessions" in item else (item.get("sessions", []) if isinstance(item, dict) else [])
+        # sqlite3.Row -> dict dönüşümü
+        item_dict = dict(item) if not isinstance(item, dict) else item
+        
+        # Ders bilgilerini al
+        cls_obj = item_dict.get("class")
+        if cls_obj:
+            cls_dict = dict(cls_obj) if not isinstance(cls_obj, dict) else cls_obj
+        else:
+            cls_dict = item_dict
+
+        cuisine = cls_dict.get("cuisine")
+        title = cls_dict.get("title")
+        
+        # Rating verisi float'a çevrilir
+        try:
+            rating = float(cls_dict.get("avg_rating") or 0.0)
+        except (ValueError, TypeError):
+            rating = 0.0
+
+        # Seans verilerini işle
+        sessions = item_dict.get("sessions", [])
+        total_sessions += len(sessions)
+
+        class_enrollments = 0
         for s in sessions:
             s_dict = dict(s) if not isinstance(s, dict) else s
-            total_enrollments += s_dict.get("enrolled_count", 0)
-            waiting = s_dict.get("waiting_students", [])
-            total_waiting += len(waiting) if waiting else 0
+            enrolled = s_dict.get("enrolled_count", 0) or 0
+            waiting = s_dict.get("waiting_students", []) or []
+            
+            total_enrollments += enrolled
+            total_waiting += len(waiting) if isinstance(waiting, (list, tuple)) else 0
+            class_enrollments += enrolled
 
+        # Mutfak popülaritesini ekle
+        if cuisine and class_enrollments > 0:
+            cuisine_counter[cuisine] += class_enrollments
+        elif cuisine:
+            cuisine_counter.setdefault(cuisine, 0)
+
+        # En yüksek puanlı sınıf seçimi
+        if rating > highest_rating:
+            highest_rating = rating
+            best_class_title = title
+        elif best_class_title is None and title:
+            best_class_title = title
+
+    # Metrikleri atama
+    stats["total_classes"] = len(classes)
+    stats["total_sessions"] = total_sessions
     stats["total_enrollments"] = total_enrollments
-
-    # 3. Bekleme Listesindeki Toplam Öğrenci Sayısı
     stats["total_waiting"] = total_waiting
 
-    # 4. En Popüler Mutfak Türü (Most Popular Cuisine)
-    if "popular_cuisine" not in stats or not stats["popular_cuisine"]:
-        cuisine_counter = Counter()
-        for item in classes:
-            # sqlite3.Row erişimi için
-            item_dict = dict(item) if not isinstance(item, dict) else item
-            
-            # cuisine verisini alma (item["cuisine"] veya item["class"]["cuisine"])
-            cuisine = None
-            if "cuisine" in item_dict:
-                cuisine = item_dict["cuisine"]
-            elif "class" in item_dict and isinstance(item_dict["class"], (dict, tuple)):
-                c_obj = dict(item_dict["class"]) if not isinstance(item_dict["class"], dict) else item_dict["class"]
-                cuisine = c_obj.get("cuisine")
-            
-            if cuisine:
-                sessions = item_dict.get("sessions", [])
-                class_enrollments = sum(
-                    (dict(s) if not isinstance(s, dict) else s).get("enrolled_count", 0) 
-                    for s in sessions
-                )
-                cuisine_counter[cuisine] += class_enrollments
+    # 4. Popüler Mutfak
+    most_common = cuisine_counter.most_common(1)
+    if most_common:
+        stats["popular_cuisine"] = most_common[0][0]
+    else:
+        stats["popular_cuisine"] = "N/A"
 
-        most_common = cuisine_counter.most_common(1)
-        stats["popular_cuisine"] = most_common[0][0] if most_common and most_common[0][1] > 0 else "N/A"
-
-    # 5. En Yüksek Puanlı Yemek Dersi (Highest Average Rating)
-    if "top_rated_class" not in stats or not stats["top_rated_class"]:
-        best_class = None
-        highest_rating = -1.0
-        for item in classes:
-            item_dict = dict(item) if not isinstance(item, dict) else item
-            
-            title = item_dict.get("title")
-            rating = item_dict.get("avg_rating", 0) or 0
-
-            if not title and "class" in item_dict:
-                c_obj = dict(item_dict["class"]) if not isinstance(item_dict["class"], dict) else item_dict["class"]
-                title = c_obj.get("title")
-                rating = c_obj.get("avg_rating", 0) or 0
-
-            if rating and rating > highest_rating and rating > 0:
-                highest_rating = rating
-                best_class = title
-
-        stats["top_rated_class"] = f"{best_class} (⭐ {highest_rating:.1f})" if best_class else "N/A"
+    # 5. En Yüksek Puanlı Ders (Eğer DAO'dan geldiyse onu kullan, yoksa hesaplananı koy)
+    if not stats.get("top_rated_class") or stats.get("top_rated_class") == "N/A":
+        if best_class_title:
+            if highest_rating > 0:
+                stats["top_rated_class"] = f"{best_class_title} (⭐ {highest_rating:.1f})"
+            else:
+                stats["top_rated_class"] = best_class_title
+        else:
+            stats["top_rated_class"] = "N/A"
 
     return render_template("manager/dashboard.html", classes=classes, stats=stats)
-
 
 @manager_bp.route("/class/create", methods=["GET", "POST"])
 def create_class():
