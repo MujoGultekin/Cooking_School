@@ -7,8 +7,8 @@ def get_all_cooking_classes():
     cursor.execute("""
         SELECT c.*, 
                (u.first_name || ' ' || u.last_name) AS manager_name,
-               COALESCE(AVG(r.score), 0) AS avg_rating,
-               COUNT(DISTINCT r.id) AS total_ratings
+               AVG(r.score) AS avg_rating,
+               COUNT(r.id) AS total_ratings
         FROM cooking_classes c
         JOIN users u ON c.manager_id = u.id
         LEFT JOIN class_sessions s ON c.id = s.class_id
@@ -30,7 +30,8 @@ def get_class_by_id(class_id):
                u.first_name AS manager_first_name, 
                u.last_name AS manager_last_name,
                (u.first_name || ' ' || u.last_name) AS manager_name,
-               COALESCE(AVG(r.score), 0) AS avg_rating
+               AVG(r.score) AS avg_rating,
+               COUNT(r.id) AS total_ratings
         FROM cooking_classes c
         JOIN users u ON c.manager_id = u.id
         LEFT JOIN class_sessions s ON c.id = s.class_id
