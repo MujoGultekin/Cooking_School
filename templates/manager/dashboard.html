@@ -25,7 +25,7 @@
     <article class="col-md-3">
         <div class="card card-culinary p-3 text-center">
             <span class="text-muted small">Average Rating</span>
-            <span class="fs-3 fw-bold text-warning">⭐ {{ "%.1f"|format(stats.avg_school_rating) }}</span>
+            <span class="fs-3 fw-bold text-warning">⭐ {{ "%.1f"|format(stats.avg_school_rating) if stats.avg_school_rating else 'N/A' }}</span>
         </div>
     </article>
     <article class="col-md-3">
@@ -50,7 +50,6 @@
                     </div>
                     
                     <div class="d-flex gap-2">
-                        <!-- KURAL 1: Seansı yoksa Edit butonu aktif, varsa engellenir -->
                         {% if item.can_edit %}
                             <a href="{{ url_for('manager.edit_class', class_id=item.class.id) }}" class="btn btn-sm btn-outline-primary">Edit Class</a>
                         {% else %}
@@ -75,18 +74,25 @@
                         <tbody>
                             {% for s in item.sessions %}
                                 <tr>
-                                    <td><strong>{{ s.day_of_week }}</strong> at {{ s.start_time }}</td>
+                                    <td><strong>{{ s.day_of_week }}</strong> at {{ s.start_time[:5] if s.start_time else s.start_time }}</td>
                                     <td>{{ s.kitchen_name }}</td>
                                     <td>{{ s.enrolled_count }} / {{ s.max_capacity }}</td>
                                     <td>
-                                        {% if s.available_slots == 0 %}
+                                        {% if s.enrolled_count == s.max_capacity %}
                                             <span class="badge bg-danger">Full</span>
                                         {% else %}
                                             <span class="badge bg-success">{{ s.available_slots }} Slots Left</span>
                                         {% endif %}
                                     </td>
                                     <td class="text-end">
-                                        <!-- KURAL 2: Kayıtlı öğrenci yoksa Cancel butonu aktif, varsa engellenir -->
+                                        <!-- KAYITLI ÖĞRENCİ LİSTESİ MODAL BUTONU -->
+                                        {% if s.enrolled_count > 0 %}
+                                            <button type="button" class="btn btn-sm btn-outline-info me-1" data-bs-toggle="modal" data-bs-target="#studentsModal{{ s.id }}">
+                                                👥 View Students ({{ s.enrolled_count }})
+                                            </button>
+                                        {% endif %}
+
+                                        <!-- SEANS İPTALİ / ENGEL -->
                                         {% if s.enrolled_count == 0 %}
                                             <form action="{{ url_for('manager.cancel_session', session_id=s.id) }}" method="POST" class="d-inline">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this session?')">Cancel Session</button>
@@ -105,6 +111,61 @@
                     </table>
                 </div>
             </article>
+
+            <!-- ÖĞRENCİ LİSTESİ MODAL PENCERELERİ (TABLONUN VE ARTICLE'IN DIŞINDA) -->
+            {% for s in item.sessions %}
+                {% if s.enrolled_count > 0 %}
+                    <div class="modal fade" id="studentsModal{{ s.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content text-start">
+                                <div class="modal-header">
+                                    <h5 class="modal-title fw-bold">Enrolled Students</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="small text-muted mb-2">
+                                        Session: <strong>{{ s.day_of_week }} at {{ s.start_time[:5] if s.start_time else s.start_time }}</strong> ({{ s.kitchen_name }})
+                                    </p>
+                                    <p class="small text-muted mb-3">
+                                        Total Enrolled: <strong>{{ s.enrolled_count }} / {{ s.max_capacity }}</strong>
+                                    </p>
+                                    
+                                    <h6 class="fw-bold mb-2">Enrolled List</h6>
+                                    <ul class="list-group mb-3">
+                                        {% for student in s.students %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>{{ student.first_name }} {{ student.last_name }}</strong>
+                                                    <br><small class="text-muted">{{ student.email }}</small>
+                                                </div>
+                                                <span class="badge bg-success">Enrolled</span>
+                                            </li>
+                                        {% else %}
+                                            <li class="list-group-item text-muted">No students enrolled yet.</li>
+                                        {% endfor %}
+                                    </ul>
+
+                                    {% if s.waiting_students %}
+                                        <h6 class="fw-bold mb-2">Waiting List</h6>
+                                        <ul class="list-group">
+                                            {% for w in s.waiting_students %}
+                                                <li class="list-group-item d-flex justify-content-between align-items-center bg-light">
+                                                    <div>
+                                                        <strong>{{ w.first_name }} {{ w.last_name }}</strong>
+                                                        <br><small class="text-muted">{{ w.email }}</small>
+                                                    </div>
+                                                    <span class="badge bg-warning text-dark">Queue #{{ loop.index }}</span>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+
         {% endfor %}
     {% else %}
         <div class="card card-culinary p-5 text-center">

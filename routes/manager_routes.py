@@ -28,9 +28,24 @@ def check_manager_role():
 
 @manager_bp.route("/dashboard")
 def dashboard():
-    """Yönetici paneli: Açılan kurslar, seanslar ve Prova Finale istatistikleri."""
+    """Yönetici paneli: Açılan kurslar, seanslar, kayıtlı öğrenciler ve istatistikler."""
     classes = get_manager_classes(current_user.id)
-    stats = get_manager_statistics(current_user.id)
+    stats = get_manager_statistics(current_user.id) or {}
+
+    # Toplam kayıtlı öğrenci sayısını seanslar üzerinden dinamik hesapla
+    total_students = sum(
+        s.get("enrolled_count", 0)
+        for item in classes
+        for s in item.get("sessions", [])
+    )
+    
+    # Stats dict'ine total_students ve total_sessions garantisi ekle
+    stats["total_students"] = total_students
+    if "total_classes" not in stats:
+        stats["total_classes"] = len(classes)
+    if "total_sessions" not in stats:
+        stats["total_sessions"] = sum(len(item.get("sessions", [])) for item in classes)
+
     return render_template("manager/dashboard.html", classes=classes, stats=stats)
 
 

@@ -1,7 +1,5 @@
-!) simule edilmis gun eklencek (eski config mantigi)
-!) "Past and upcoming class sessions must be clearly distinguishable" Bu yok ogrenci profillerinde 
+!) simule edilmis gun eklencek (eski config mantigi) 
 !) "For each session, they must be able to see the list of enrolled students, the total number of enrolled students" bu yok manager dashboardinda
-!) "For each cooking class that has received at least one rating, the application must display its average rating, considering ratings from all its class sessions" bu var ancak en az bir kuralini karsilamiyor 0 ratingli seyleride gosteriyor
 !) "Cooking school managers must be able to view the waiting list for each of their class sessions" bu yok
 !) prova finaledeki ekstra alt basliklar yok 
 !) sqlite file ne oluyor onu sor

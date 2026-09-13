@@ -67,7 +67,7 @@ def get_class_by_id(class_id):
     return class_data, sessions
 
 def get_manager_classes(manager_id):
-    """Yöneticinin açtığı kursları, seanslarını ve düzenlenme durumlarını getirir."""
+    """Yöneticinin açtığı kursları, seanslarını ve seansa kayıtlı öğrencilerin bilgilerini getirir."""
     conn = get_db()
     cursor = conn.cursor()
     
@@ -87,12 +87,37 @@ def get_manager_classes(manager_id):
         """, (c["id"],))
         sessions = cursor.fetchall()
         
+        sessions_with_students = []
+        for s in sessions:
+            s_dict = dict(s)
+            
+            # Seansa kayıtlı olan öğrencilerin ad, soyad ve e-postasını çek
+            cursor.execute("""
+                SELECT u.first_name, u.last_name, u.email 
+                FROM enrollments e
+                JOIN users u ON e.student_id = u.id
+                WHERE e.session_id = ?
+            """, (s["id"],))
+            s_dict["students"] = cursor.fetchall()
+
+            # Bekleme listesindeki öğrencileri sırayla çek
+            cursor.execute("""
+                SELECT u.first_name, u.last_name, u.email 
+                FROM waiting_list w
+                JOIN users u ON w.student_id = u.id
+                WHERE w.session_id = ?
+                ORDER BY w.joined_at ASC
+            """, (s["id"],))
+            s_dict["waiting_students"] = cursor.fetchall()
+
+            sessions_with_students.append(s_dict)
+
         # Dersi düzenleyip düzenleyemeyeceğini kontrol et
         can_edit = len(sessions) == 0
         
         manager_data.append({
             "class": c, 
-            "sessions": sessions,
+            "sessions": sessions_with_students,
             "can_edit": can_edit
         })
 

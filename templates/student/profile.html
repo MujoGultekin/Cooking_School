@@ -16,17 +16,25 @@
             {% if enrollments %}
                 <div class="list-group list-group-flush">
                     {% for e in enrollments %}
-                        <div class="list-group-item bg-transparent px-0 py-3">
+                        <!-- Geçmiş dersler için opasite düşürülür -->
+                        <div class="list-group-item bg-transparent px-0 py-3 {{ 'opacity-75' if e.is_past else '' }}">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>
-                                    <h3 class="h5 fw-bold mb-1">{{ e.class_title }}</h3>
-                                    <div class="mb-2">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <h3 class="h5 fw-bold mb-0">{{ e.class_title }}</h3>
+                                        <!-- PAST / UPCOMING AYRIT EDİCİ ROZETLER -->
+                                        {% if e.is_past %}
+                                            <span class="badge bg-secondary">Completed</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Upcoming</span>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="mb-2 mt-2">
                                         <span class="badge bg-primary">{{ e.cuisine }}</span>
-                                        <!-- Duration (Süre) Eklendi -->
                                         {% if e.duration %}
                                             <span class="badge bg-dark">⏱️ {{ e.duration }} Mins</span>
                                         {% endif %}
-                                        <!-- Chef Bilgisi -->
                                         <span class="small text-dark ms-2">👨‍🍳 <strong>Chef:</strong> {{ e.chef_name }}</span>
                                     </div>
                                     <div class="text-muted small">
@@ -36,27 +44,34 @@
                             </div>
                             
                             <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-                                <!-- Cancellation Action -->
-                                <form method="post" action="{{ url_for('student.cancel', session_id=e.session_id) }}">
-                                    <input type="hidden" name="day_of_week" value="{{ e.day_of_week }}">
-                                    <input type="hidden" name="start_time" value="{{ e.start_time }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this enrollment?')">Cancel Registration</button>
-                                </form>
-
-                                <!-- Rating Action (Past/Completed Classes) -->
                                 {% if e.is_past %}
-                                    <form method="post" action="{{ url_for('student.rate_session', session_id=e.session_id) }}" class="d-flex align-items-center gap-1">
-                                        <select name="score" class="form-select form-select-sm" required>
-                                            <option value="" disabled selected>Rate</option>
-                                            <option value="5">5 ⭐⭐⭐⭐⭐</option>
-                                            <option value="4">4 ⭐⭐⭐⭐</option>
-                                            <option value="3">3 ⭐⭐⭐</option>
-                                            <option value="2">2 ⭐⭐</option>
-                                            <option value="1">1 ⭐</option>
-                                        </select>
-                                        <button type="submit" class="btn btn-sm btn-warning">Submit</button>
-                                    </form>
+                                    <!-- GEÇMİŞ DERS: İptal butonu kaldırılır, Puanlama Paneli Açılır -->
+                                    <span class="text-muted small"><i>Session completed</i></span>
+
+                                    {% if e.user_score %}
+                                        <span class="badge bg-info text-dark">Your Rating: ⭐ {{ e.user_score }}/5</span>
+                                    {% else %}
+                                        <form method="post" action="{{ url_for('student.rate_session', session_id=e.session_id) }}" class="d-flex align-items-center gap-1">
+                                            <select name="score" class="form-select form-select-sm" required>
+                                                <option value="" disabled selected>Rate Class</option>
+                                                <option value="5">5 ⭐⭐⭐⭐⭐</option>
+                                                <option value="4">4 ⭐⭐⭐⭐</option>
+                                                <option value="3">3 ⭐⭐⭐</option>
+                                                <option value="2">2 ⭐⭐</option>
+                                                <option value="1">1 ⭐</option>
+                                            </select>
+                                            <button type="submit" class="btn btn-sm btn-warning">Submit</button>
+                                        </form>
+                                    {% endif %}
+
                                 {% else %}
+                                    <!-- GELECEK DERS: İptal yapılabilir, Puanlama yapılamaz -->
+                                    <form method="post" action="{{ url_for('student.cancel', session_id=e.session_id) }}">
+                                        <input type="hidden" name="day_of_week" value="{{ e.day_of_week }}">
+                                        <input type="hidden" name="start_time" value="{{ e.start_time }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this enrollment?')">Cancel Registration</button>
+                                    </form>
+
                                     <span class="badge bg-light text-muted border">Rating available after class completion</span>
                                 {% endif %}
                             </div>
@@ -79,7 +94,6 @@
                         <div class="list-group-item bg-transparent px-0 py-3">
                             <h3 class="h6 fw-bold mb-1">{{ w.class_title }}</h3>
                             <div class="mb-2">
-                                <!-- Waiting list için de Duration Eklendi -->
                                 {% if w.duration %}
                                     <span class="badge bg-dark small p-1">⏱️ {{ w.duration }} Mins</span>
                                 {% endif %}
