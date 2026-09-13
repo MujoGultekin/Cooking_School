@@ -1,12 +1,9 @@
 from database.database import close_db, get_db
-from utils import is_session_past  # <--- Tarih kontrolünü buradan alıyoruz
+from utils import is_session_past  # <--- Tarih kontrolü
 
 
 def get_active_enrollments_count(cursor, student_id):
-    """
-    Öğrencinin veritabanındaki kayıtlarını çekip SADECE 
-    henüz bitmemiş (gelememiş) seansların sayısını döner.
-    """
+    """Öğrencinin veritabanındaki kayıtlarını çekip SADECE henüz bitmemiş (gelememiş) seansların sayısını döner."""
     cursor.execute(
         """
         SELECT s.day_of_week, s.start_time 
@@ -20,7 +17,6 @@ def get_active_enrollments_count(cursor, student_id):
 
     active_count = 0
     for item in student_enrollments:
-        # Seansın günü ve saati geçmişte kalmadıysa AKTİF kayıttır
         if not is_session_past(item["day_of_week"], item["start_time"]):
             active_count += 1
 
@@ -32,15 +28,14 @@ def enroll_or_join_waiting_list(student_id, session_id):
     cursor = conn.cursor()
 
     try:
-        # 1. Seans bilgilerini ve mevcut kayıt sayısını çek
+        # 1. Seans detaylarını çek
         cursor.execute(
             """
-            SELECT day_of_week, start_time, max_capacity, 
-                   (SELECT COUNT(*) FROM enrollments WHERE session_id = ?) as enrolled_count
+            SELECT day_of_week, start_time, max_capacity 
             FROM class_sessions 
             WHERE id = ?
         """,
-            (session_id, session_id),
+            (session_id,),
         )
         session = cursor.fetchone()
 
@@ -49,16 +44,34 @@ def enroll_or_join_waiting_list(student_id, session_id):
 
         target_day = session["day_of_week"]
         target_time = session["start_time"]
+        max_capacity = session["max_capacity"]
 
-        # 2. Daha önce BU SEANSA kayıt olunmuş mu kontrolü
-        cursor.execute(
-            "SELECT id FROM enrollments WHERE student_id = ? AND session_id = ?",
-            (student_id, session_id),
-        )
-        if cursor.fetchone():
-            return False, "You are already enrolled in this session."
+        # Seans geçmişte mi kaldı kontrolü (Örn: Pazartesi 10:01 oldu mu?)
+        is_past = is_session_past(target_day, target_time)
 
-        # 3. ZAMAN ÇAKIŞMASI KONTROLÜ (TIME CONFLICT)
+        # 2. SEANS KAPASİTESİ (Kapasiteyi Zaman Duyarlı Hesaplama)
+        # Seans zamanı geçtiyse geçmiş kayıtlar kontenjanı DOLDURMAZ (0 kabul edilir)
+        if is_past:
+            enrolled_count = 0
+        else:
+            cursor.execute(
+                "SELECT COUNT(*) FROM enrollments WHERE session_id = ?",
+                (session_id,),
+            )
+            enrolled_count = cursor.fetchone()[0]
+
+        # 3. ZATEN KAYITLI MI KONTROLÜ
+        # Yalnızca seans GELECEKTE ise kayıt engeli koy.
+        # Ders GEÇMİŞTE kalmışsa öğrenci gelecek haftanın taze döngüsüne tekrar kaydolabilir.
+        if not is_past:
+            cursor.execute(
+                "SELECT id FROM enrollments WHERE student_id = ? AND session_id = ?",
+                (student_id, session_id),
+            )
+            if cursor.fetchone():
+                return False, "You are already enrolled in this session."
+
+        # 4. ZAMAN ÇAKIŞMASI KONTROLÜ (TIME CONFLICT)
         cursor.execute(
             """
             SELECT s.day_of_week, s.start_time 
@@ -71,8 +84,7 @@ def enroll_or_join_waiting_list(student_id, session_id):
             (student_id, target_day, target_time),
         )
         conflicting_classes = cursor.fetchall()
-        
-        # Çakışan ders gerçekten GELECEKTE bir ders mi kontrol et
+
         for conf in conflicting_classes:
             if not is_session_past(conf["day_of_week"], conf["start_time"]):
                 return (
@@ -80,7 +92,7 @@ def enroll_or_join_waiting_list(student_id, session_id):
                     f"You already have another class scheduled on {target_day} at {target_time[:5]}.",
                 )
 
-        # 4. AKTİF HAFTALIK MAKSİMUM 4 SEANS LİMİTİ KONTROLÜ
+        # 5. AKTİF HAFTALIK MAKSİMUM 4 SEANS LİMİTİ KONTROLÜ
         active_enrolled_count = get_active_enrollments_count(cursor, student_id)
         if active_enrolled_count >= 4:
             return (
@@ -88,17 +100,29 @@ def enroll_or_join_waiting_list(student_id, session_id):
                 "Weekly enrollment limit reached. You cannot enroll in more than 4 active sessions per week.",
             )
 
-        # 5. Kontenjan kontrolü
-        if session["enrolled_count"] < session["max_capacity"]:
-            # Kontenjan var -> Kaydet
+        # 6. KONTENJAN KONTROLÜ VE KAYIT YAPMA (UNIQUE Constraint Çözümü)
+        if enrolled_count < max_capacity:
+            # Öğrenci bu seansa geçmişte kaydolmuş mu kontrol et
             cursor.execute(
-                "INSERT INTO enrollments (student_id, session_id) VALUES (?, ?)",
+                "SELECT id FROM enrollments WHERE student_id = ? AND session_id = ?",
                 (student_id, session_id),
             )
+            existing_enrollment = cursor.fetchone()
+
+            if existing_enrollment:
+                # Satır zaten var (SQLite UNIQUE çakışmasını engellemek için INSERT yapmıyoruz)
+                # Yeni hafta döngüsü için kaydı başarıyla aktif kabul ediyoruz
+                msg = "Successfully enrolled in the class for the upcoming session!"
+            else:
+                cursor.execute(
+                    "INSERT INTO enrollments (student_id, session_id) VALUES (?, ?)",
+                    (student_id, session_id),
+                )
+                msg = "Successfully enrolled in the class!"
+
             conn.commit()
-            msg = "Successfully enrolled in the class!"
         else:
-            # Kontenjan dolu -> Bekleme listesine al
+            # Kontenjan doluysa bekleme listesine al
             cursor.execute(
                 "SELECT id FROM waiting_list WHERE student_id = ? AND session_id = ?",
                 (student_id, session_id),
@@ -131,14 +155,12 @@ def cancel_enrollment(student_id, session_id):
     cursor = conn.cursor()
 
     try:
-        # İptal edilen seansın detaylarını al
         cursor.execute(
             "SELECT day_of_week, start_time FROM class_sessions WHERE id = ?",
             (session_id,),
         )
         session_info = cursor.fetchone()
 
-        # Kaydı sil
         cursor.execute(
             "DELETE FROM enrollments WHERE student_id = ? AND session_id = ?",
             (student_id, session_id),
@@ -148,7 +170,6 @@ def cancel_enrollment(student_id, session_id):
             target_day = session_info["day_of_week"]
             target_time = session_info["start_time"]
 
-            # Bekleme listesindeki öğrencileri sırayla getir (FIFO)
             cursor.execute(
                 """
                 SELECT id, student_id FROM waiting_list 
@@ -161,12 +182,10 @@ def cancel_enrollment(student_id, session_id):
             for student in waiting_students:
                 candidate_id = student["student_id"]
 
-                # Aday öğrencinin AKTİF 4 ders limitini kontrol et
                 active_count = get_active_enrollments_count(cursor, candidate_id)
                 if active_count >= 4:
-                    continue  # Limiti dolduysa bu adayı atla, sıradakine geç
+                    continue
 
-                # Aday öğrencinin aynı saatte başka çakışan AKTİF dersi var mı kontrol et
                 cursor.execute(
                     """
                     SELECT s.day_of_week, s.start_time FROM enrollments e
@@ -178,7 +197,7 @@ def cancel_enrollment(student_id, session_id):
                     (candidate_id, target_day, target_time),
                 )
                 conflicting_classes = cursor.fetchall()
-                
+
                 has_conflict = False
                 for conf in conflicting_classes:
                     if not is_session_past(conf["day_of_week"], conf["start_time"]):
@@ -186,7 +205,6 @@ def cancel_enrollment(student_id, session_id):
                         break
 
                 if not has_conflict:
-                    # Çakışması ve limit engeli yoksa derse aktar
                     cursor.execute(
                         "INSERT INTO enrollments (student_id, session_id) VALUES (?, ?)",
                         (candidate_id, session_id),
@@ -207,7 +225,7 @@ def cancel_enrollment(student_id, session_id):
 
 
 def get_student_enrollments(student_id):
-    """Öğrencinin aktif olarak kaydolduğu tüm ders seanslarını, manager adını, chef adını, süresini ve puanını getirir."""
+    """Öğrencinin tüm ders seanslarını, manager adını, chef adını, süresini ve puanını getirir."""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(

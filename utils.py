@@ -25,8 +25,8 @@ def get_current_simulated_datetime():
     now = datetime.now()
     
     try:
-        simulated_day_str = getattr(config, "SIMULATED_DAY", "Wednesday")
-        simulated_time_str = getattr(config, "SIMULATED_TIME", "17:00")
+        simulated_day_str = getattr(config, "SIMULATED_DAY", "Monday")
+        simulated_time_str = getattr(config, "SIMULATED_TIME", "09:00")
     except RuntimeError:
         return now
 
