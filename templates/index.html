@@ -21,6 +21,7 @@
                     <h2 class="h5 card-title fw-bold">{{ c.title }}</h2>
                     <p class="card-text text-muted small flex-grow-1">{{ c.description[:100] }}...</p>
                     <ul class="list-unstyled small mb-3">
+                        <li><strong>Manager:</strong> {{ c.manager_name }}</li>
                         <li><strong>Chef:</strong> {{ c.chef_name }}</li>
                         <li><strong>Duration:</strong> {{ c.duration }} mins</li>
                         <li><strong>Dietary:</strong> {{ c.dietary_category }}</li>

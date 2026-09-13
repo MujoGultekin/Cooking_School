@@ -9,13 +9,19 @@
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
             <div>
                 <h1 class="display-6 fw-bold mb-2">{{ class_data.title }}</h1>
-                <p class="text-muted">Managed by Chef {{ class_data.manager_first_name }} {{ class_data.manager_last_name }}</p>
+                <!-- Manager ve Chef Bilgileri Ayrı Ayrı Gösterildi -->
+                <p class="text-muted mb-1">
+                    <i class="bi bi-person-badge"></i> <strong>Created by Manager:</strong> {{ class_data.manager_name }}
+                </p>
+                <p class="text-muted">
+                    <i class="bi bi-hat-chef"></i> <strong>Instructor Chef:</strong> {{ class_data.chef_name }}
+                </p>
             </div>
             <div class="text-end">
                 <span class="badge bg-warning text-dark fs-6 p-2">⭐ {{ "%.1f"|format(class_data.avg_rating) }} / 5.0</span>
             </div>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
+        <div class="d-flex gap-2 flex-wrap mt-2">
             <span class="badge bg-primary">{{ class_data.cuisine }}</span>
             <span class="badge bg-secondary">{{ class_data.difficulty }}</span>
             <span class="badge bg-info text-dark">{{ class_data.dietary_category }}</span>
@@ -23,16 +29,16 @@
         </div>
     </header>
 
-    <!-- 3'lü Fotoğraf Galerisi (Stylistic Requirement) -->
+    <!-- 3'lü Fotoğraf Galerisi -->
     <section class="row g-3 mb-4">
         <div class="col-md-4">
-            <img src="{{ class_data.photo_1 }}" class="img-fluid w-100 gallery-img" alt="Promotional Photo 1">
+            <img src="{{ class_data.photo_1 }}" class="img-fluid w-100 gallery-img rounded" alt="Promotional Photo 1">
         </div>
         <div class="col-md-4">
-            <img src="{{ class_data.photo_2 }}" class="img-fluid w-100 gallery-img" alt="Promotional Photo 2">
+            <img src="{{ class_data.photo_2 }}" class="img-fluid w-100 gallery-img rounded" alt="Promotional Photo 2">
         </div>
         <div class="col-md-4">
-            <img src="{{ class_data.photo_3 }}" class="img-fluid w-100 gallery-img" alt="Promotional Photo 3">
+            <img src="{{ class_data.photo_3 }}" class="img-fluid w-100 gallery-img rounded" alt="Promotional Photo 3">
         </div>
     </section>
 
@@ -61,7 +67,7 @@
                         {% for s in sessions %}
                             <div class="list-group-item d-flex flex-column gap-2 py-3">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <strong class="text-primary">{{ s.day_of_week }} at {{ s.start_time }}</strong>
+                                    <strong class="text-primary">{{ s.day_of_week }} at {{ s.start_time[:5] }}</strong>
                                     <span class="badge bg-outline-dark text-dark border">{{ s.kitchen_name }}</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center small text-muted">

@@ -1,14 +1,16 @@
 from database.database import close_db, get_db
 
 def get_all_cooking_classes():
-    """Ana sayfa için tüm kursları ortalama puanlarıyla getirir."""
+    """Ana sayfa için tüm kursları ortalama puanlarıyla ve oluşturan Manager adı ile getirir."""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT c.*, 
+               (u.first_name || ' ' || u.last_name) AS manager_name,
                COALESCE(AVG(r.score), 0) AS avg_rating,
                COUNT(DISTINCT r.id) AS total_ratings
         FROM cooking_classes c
+        JOIN users u ON c.manager_id = u.id
         LEFT JOIN class_sessions s ON c.id = s.class_id
         LEFT JOIN ratings r ON s.id = r.session_id
         GROUP BY c.id
@@ -19,12 +21,15 @@ def get_all_cooking_classes():
     return classes
 
 def get_class_by_id(class_id):
-    """Kurs detay sayfasında kursun tüm bilgilerini ve seanslarını getirir."""
+    """Kurs detay sayfasında kursun tüm bilgilerini, Manager adını ve seanslarını getirir."""
     conn = get_db()
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT c.*, u.first_name AS manager_first_name, u.last_name AS manager_last_name,
+        SELECT c.*, 
+               u.first_name AS manager_first_name, 
+               u.last_name AS manager_last_name,
+               (u.first_name || ' ' || u.last_name) AS manager_name,
                COALESCE(AVG(r.score), 0) AS avg_rating
         FROM cooking_classes c
         JOIN users u ON c.manager_id = u.id

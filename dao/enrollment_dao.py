@@ -50,7 +50,7 @@ def enroll_or_join_waiting_list(student_id, session_id):
                 f"You already have another class scheduled on {target_day} at {target_time[:5]}.",
             )
 
-        # 4. HAFTALIK MAKSİMUM 4 SEANS LİMİTİ KONTROLÜ (EKLENEN KISIM)
+        # 4. HAFTALIK MAKSİMUM 4 SEANS LİMİTİ KONTROLÜ
         cursor.execute(
             "SELECT COUNT(*) as total_enrolled FROM enrollments WHERE student_id = ?",
             (student_id,),
@@ -100,7 +100,7 @@ def enroll_or_join_waiting_list(student_id, session_id):
 
 
 def cancel_enrollment(student_id, session_id):
-    """Kayıt iptal edilir. Bekleme listesinde çakışması olmayan ilk öğrenci otomatik kaydolur."""
+    """Kayıt iptal edilir. Bekleme listesinde çakışması ve 4 ders limiti engeli olmayan ilk öğrenci otomatik kaydolur."""
     conn = get_db()
     cursor = conn.cursor()
 
@@ -135,6 +135,14 @@ def cancel_enrollment(student_id, session_id):
             for student in waiting_students:
                 candidate_id = student["student_id"]
 
+                # Aday öğrencinin 4 ders limitini aşıp aşmadığını kontrol et
+                cursor.execute(
+                    "SELECT COUNT(*) as total FROM enrollments WHERE student_id = ?",
+                    (candidate_id,),
+                )
+                if cursor.fetchone()["total"] >= 4:
+                    continue  # Limiti dolduysa bu adayı atla, sıradakine geç
+
                 # Aday öğrencinin aynı saatte başka çakışan dersi var mı kontrol et
                 cursor.execute(
                     """
@@ -148,7 +156,7 @@ def cancel_enrollment(student_id, session_id):
                 )
 
                 if not cursor.fetchone():
-                    # Çakışması yoksa derse aktar
+                    # Çakışması ve limit engeli yoksa derse aktar
                     cursor.execute(
                         "INSERT INTO enrollments (student_id, session_id) VALUES (?, ?)",
                         (candidate_id, session_id),
@@ -169,17 +177,19 @@ def cancel_enrollment(student_id, session_id):
 
 
 def get_student_enrollments(student_id):
-    """Öğrencinin aktif olarak kaydolduğu tüm ders seanslarını ve puanını getirir."""
+    """Öğrencinin aktif olarak kaydolduğu tüm ders seanslarını, manager adını, chef adını, süresini ve puanını getirir."""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
         """
         SELECT e.id AS enrollment_id, s.id AS session_id, s.day_of_week, s.start_time, s.kitchen_name,
-               c.title AS class_title, c.cuisine,
+               c.title AS class_title, c.cuisine, c.chef_name, c.duration,
+               (u.first_name || ' ' || u.last_name) AS manager_name,
                r.score AS user_score
         FROM enrollments e
         JOIN class_sessions s ON e.session_id = s.id
         JOIN cooking_classes c ON s.class_id = c.id
+        JOIN users u ON c.manager_id = u.id
         LEFT JOIN ratings r ON r.session_id = s.id AND r.student_id = e.student_id
         WHERE e.student_id = ?
         ORDER BY 
@@ -197,13 +207,13 @@ def get_student_enrollments(student_id):
 
 
 def get_student_waiting_list(student_id):
-    """Öğrencinin bekleme listesinde olduğu dersleri ve sırasını getirir."""
+    """Öğrencinin bekleme listesinde olduğu dersleri, sırasını, chef adını ve süresini getirir."""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
         """
         SELECT w.id AS waiting_id, w.session_id, s.day_of_week, s.start_time,
-               c.title AS class_title,
+               c.title AS class_title, c.chef_name, c.duration,
                (
                    SELECT COUNT(*) + 1 
                    FROM waiting_list w2 
