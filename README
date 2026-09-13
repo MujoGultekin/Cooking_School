@@ -10,8 +10,8 @@ Built with Python (Flask), SQLite3, HTML5, and CSS3.
 1. SIMULATED TIME & DAY FOR EVALUATION
 ------------------------------------------------------------------------
 The system assumes the current system time is set to:
-  - Day: Thursday
-  - Time: 14:00
+  - Day: Monday
+  - Time: 09:00
 
 ------------------------------------------------------------------------
 2. PRE-CONFIGURED TEST ACCOUNTS (Password for ALL accounts: password123)

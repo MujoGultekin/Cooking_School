@@ -1,3 +1,3 @@
-!) simule edilmis gun eklencek (eski config mantigi) 
-!) prova finaledeki ekstra alt basliklar yok 
-!) sqlite file ne oluyor onu sor
+!) simule edilmis gun eklencek (eski config mantigi)  
+!) gecmis enrollemnt silinmedigi icin kisinin 4 hakkindan birisi oluyor ve sadece 3 enrollment yapmasina izin veriyor
+!) alice suan hali hazirda bir tane derse 5 puan vermis olarak gozukuyor ancak hoca rating sistemini kontrol etmek icin bir aded rating olmamis past session isteyecektir cunku biliyorsunuz ki simule edilen saat ve gunde saat ilerlemedigi icin rating hakki asla gelmeyecektir
