@@ -9,7 +9,7 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
-    """Kullanıcı giriş fonksiyonu."""
+    """Handles user authentication."""
     if request.method == "POST":
         email = request.form.get("email", "").strip()
         password = request.form.get("password", "").strip()
@@ -38,7 +38,7 @@ def login():
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
-    """Yeni kullanıcı (Manager veya Student) kayıt fonksiyonu."""
+    """Handles registration for new Managers or Students."""
     if request.method == "POST":
         email = request.form.get("email", "").strip()
         first_name = request.form.get("first_name", "").strip()
@@ -73,7 +73,7 @@ def register():
 
 @auth_bp.route("/logout")
 def logout():
-    """Oturum kapatma fonksiyonu."""
+    """Logs out the active user session."""
     logout_user()
     flash("You have been logged out.", "info")
     return redirect(url_for("home.index"))

@@ -16,13 +16,13 @@
             {% if enrollments %}
                 <div class="list-group list-group-flush">
                     {% for e in enrollments %}
-                        <!-- Geçmiş dersler için opasite düşürülür -->
+                        {# Dim opacity for completed past sessions #}
                         <div class="list-group-item bg-transparent px-0 py-3 {{ 'opacity-75' if e.is_past else '' }}">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>
                                     <div class="d-flex align-items-center gap-2 mb-1">
                                         <h3 class="h5 fw-bold mb-0">{{ e.class_title }}</h3>
-                                        <!-- PAST / UPCOMING AYRIT EDİCİ ROZETLER -->
+                                        {# Badges to distinguish completed vs upcoming sessions #}
                                         {% if e.is_past %}
                                             <span class="badge bg-secondary">Completed</span>
                                         {% else %}
@@ -45,7 +45,7 @@
                             
                             <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
                                 {% if e.is_past %}
-                                    <!-- GEÇMİŞ DERS: İptal butonu kaldırılır, Puanlama Paneli Açılır -->
+                                    {# Past session: Disable cancellation and show rating form #}
                                     <span class="text-muted small"><i>Session completed</i></span>
 
                                     {% if e.user_score %}
@@ -65,7 +65,7 @@
                                     {% endif %}
 
                                 {% else %}
-                                    <!-- GELECEK DERS: İptal yapılabilir, Puanlama yapılamaz -->
+                                    {# Upcoming session: Allow cancellation, prevent rating #}
                                     <form method="post" action="{{ url_for('student.cancel', session_id=e.session_id) }}">
                                         <input type="hidden" name="day_of_week" value="{{ e.day_of_week }}">
                                         <input type="hidden" name="start_time" value="{{ e.start_time }}">

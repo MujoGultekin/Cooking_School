@@ -54,6 +54,7 @@
     </header>
 
     <main class="container py-4">
+        {# Flash message notifications #}
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}

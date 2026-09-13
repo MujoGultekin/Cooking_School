@@ -14,6 +14,7 @@ from routes.student_routes import student_bp
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
+# Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 login_manager.login_message_category = "danger"
@@ -21,6 +22,7 @@ login_manager.init_app(app)
 
 @app.after_request
 def add_header(response):
+    # Disable browser caching for secure/fresh responses
     response.headers["Cache-Control"] = (
         "no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0"
     )
@@ -31,6 +33,7 @@ def add_header(response):
 
 @login_manager.user_loader
 def load_user(user_id):
+    # Retrieve user instance for Flask-Login session management
     row = get_user_by_id(user_id)
     if row:
         return User(
@@ -43,7 +46,7 @@ def load_user(user_id):
     return None
 
 
-# Blueprint Kayıtları
+# Register application blueprints
 app.register_blueprint(home_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(manager_bp)

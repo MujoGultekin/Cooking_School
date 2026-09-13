@@ -9,7 +9,7 @@ from dao.enrollment_dao import (
     leave_waiting_list,
 )
 from dao.rating_dao import add_class_rating
-from utils import can_cancel_enrollment, get_current_simulated_datetime, is_session_past, student_required  # Simüle zaman fonksiyonları
+from utils import can_cancel_enrollment, is_session_past
 
 student_bp = Blueprint("student", __name__, url_prefix="/student")
 
@@ -17,7 +17,7 @@ student_bp = Blueprint("student", __name__, url_prefix="/student")
 @student_bp.before_request
 @login_required
 def check_student_role():
-    """Yalnızca Student rolündeki kullanıcıların bu rotalara erişmesini sağlar."""
+    """Restricts access to users with the Student role."""
     if current_user.role != "Student":
         flash("Access denied. Student privileges required.", "danger")
         return redirect(url_for("home.index"))
@@ -26,32 +26,20 @@ def check_student_role():
 @student_bp.route("/profile")
 @login_required
 def profile():
+    """Displays enrolled sessions and waiting list status for the student."""
     raw_enrollments = get_student_enrollments(current_user.id)
     waiting_sessions = get_student_waiting_list(current_user.id)
 
     processed_enrollments = []
-    print("\n--- DEBUG START ---")
-    sim_now = get_current_simulated_datetime()
-    print(f"1. SIMULE ZAMAN: {sim_now} (Day Index: {sim_now.isoweekday()})")
-
     for item in raw_enrollments:
         enroll_data = dict(item)
-
         day = enroll_data.get("day_of_week")
         time_str = enroll_data.get("start_time")
 
-        is_past_val = is_session_past(day, time_str)
-        enroll_data["is_past"] = is_past_val
+        enroll_data["is_past"] = is_session_past(day, time_str)
         enroll_data["can_cancel"] = can_cancel_enrollment(day, time_str)
 
-        print(
-            f"2. DERS: {enroll_data.get('class_title')} | "
-            f"Gun: '{day}' | Saat: '{time_str}' | "
-            f"is_past sonucu: {is_past_val}"
-        )
-
         processed_enrollments.append(enroll_data)
-    print("--- DEBUG END ---\n")
 
     return render_template(
         "student/profile.html",
@@ -59,10 +47,11 @@ def profile():
         waiting_sessions=waiting_sessions,
     )
 
+
 @student_bp.route("/enroll/<int:session_id>", methods=["POST"])
 @login_required
 def enroll(session_id):
-    """Derse kayıt olma veya doluluğa göre Bekleme Listesine eklenme rotası."""
+    """Enrolls a student in a session or adds them to the waiting list if full."""
     ok, msg = enroll_or_join_waiting_list(current_user.id, session_id)
     flash(msg, "success" if ok else "danger")
     return redirect(request.referrer or url_for("home.index"))
@@ -71,8 +60,7 @@ def enroll(session_id):
 @student_bp.route("/cancel/<int:session_id>", methods=["POST"])
 @login_required
 def cancel(session_id):
-    """Derse 12 saat kala yapılan iptal işlemi (Otomatik FIFO bekleme listesi tetiklenir)."""
-    # Form verilerini request üzerinden çekiyoruz
+    """Cancels an enrollment if at least 12 hours before session start (triggers FIFO waiting list)."""
     day_of_week = request.form.get("day_of_week")
     start_time = request.form.get("start_time")
 
@@ -88,7 +76,7 @@ def cancel(session_id):
 @student_bp.route("/waiting-list/leave/<int:session_id>", methods=["POST"])
 @login_required
 def leave_waiting(session_id):
-    """Öğrencinin bekleme listesinden kendi isteğiyle ayrılması."""
+    """Allows a student to voluntarily leave a waiting list."""
     ok, msg = leave_waiting_list(current_user.id, session_id)
     flash(msg, "info" if ok else "danger")
     return redirect(url_for("student.profile"))
@@ -97,7 +85,7 @@ def leave_waiting(session_id):
 @student_bp.route("/rate/<int:session_id>", methods=["POST"])
 @login_required
 def rate_session(session_id):
-    """Tamamlanmış bir ders için 1-5 arası puan verme işlemi."""
+    """Submits a 1-5 rating score for a completed session."""
     score = request.form.get("score", type=int)
     if not score or not (1 <= score <= 5):
         flash("Rating score must be between 1 and 5.", "danger")

@@ -20,7 +20,7 @@ manager_bp = Blueprint("manager", __name__, url_prefix="/manager")
 @manager_bp.before_request
 @login_required
 def check_manager_role():
-    """Yalnızca Manager rolündeki kullanıcıların bu rotalara erişmesini sağlar."""
+    """Restricts access to users with the Manager role."""
     if current_user.role != "Manager":
         flash("Access denied. Manager privileges required.", "danger")
         return redirect(url_for("home.index"))
@@ -28,11 +28,10 @@ def check_manager_role():
 
 @manager_bp.route("/dashboard")
 def dashboard():
-    """Yönetici paneli: Açılan kurslar, seanslar ve 5 temel istatistik göstergesi."""
+    """Manager Dashboard: displays active classes, sessions, and summary metrics."""
     classes = get_manager_classes(current_user.id) or []
     raw_stats = get_manager_statistics(current_user.id) or {}
 
-    # stats verisini dict yapısına dönüştür
     stats = {}
     if isinstance(raw_stats, dict):
         stats = dict(raw_stats)
@@ -42,20 +41,17 @@ def dashboard():
         except Exception:
             stats = {}
 
-    # Hesaplama değişkenleri
     total_sessions = 0
     total_enrollments = 0
     total_waiting = 0
     cuisine_counter = Counter()
-    
+
     best_class_title = None
     highest_rating = -1.0
 
     for item in classes:
-        # sqlite3.Row -> dict dönüşümü
         item_dict = dict(item) if not isinstance(item, dict) else item
-        
-        # Ders bilgilerini al
+
         cls_obj = item_dict.get("class")
         if cls_obj:
             cls_dict = dict(cls_obj) if not isinstance(cls_obj, dict) else cls_obj
@@ -64,14 +60,12 @@ def dashboard():
 
         cuisine = cls_dict.get("cuisine")
         title = cls_dict.get("title")
-        
-        # Rating verisi float'a çevrilir
+
         try:
             rating = float(cls_dict.get("avg_rating") or 0.0)
         except (ValueError, TypeError):
             rating = 0.0
 
-        # Seans verilerini işle
         sessions = item_dict.get("sessions", [])
         total_sessions += len(sessions)
 
@@ -80,38 +74,33 @@ def dashboard():
             s_dict = dict(s) if not isinstance(s, dict) else s
             enrolled = s_dict.get("enrolled_count", 0) or 0
             waiting = s_dict.get("waiting_students", []) or []
-            
+
             total_enrollments += enrolled
             total_waiting += len(waiting) if isinstance(waiting, (list, tuple)) else 0
             class_enrollments += enrolled
 
-        # Mutfak popülaritesini ekle
         if cuisine and class_enrollments > 0:
             cuisine_counter[cuisine] += class_enrollments
         elif cuisine:
             cuisine_counter.setdefault(cuisine, 0)
 
-        # En yüksek puanlı sınıf seçimi
         if rating > highest_rating:
             highest_rating = rating
             best_class_title = title
         elif best_class_title is None and title:
             best_class_title = title
 
-    # Metrikleri atama
     stats["total_classes"] = len(classes)
     stats["total_sessions"] = total_sessions
     stats["total_enrollments"] = total_enrollments
     stats["total_waiting"] = total_waiting
 
-    # 4. Popüler Mutfak
     most_common = cuisine_counter.most_common(1)
     if most_common:
         stats["popular_cuisine"] = most_common[0][0]
     else:
         stats["popular_cuisine"] = "N/A"
 
-    # 5. En Yüksek Puanlı Ders (Eğer DAO'dan geldiyse onu kullan, yoksa hesaplananı koy)
     if not stats.get("top_rated_class") or stats.get("top_rated_class") == "N/A":
         if best_class_title:
             if highest_rating > 0:
@@ -123,9 +112,10 @@ def dashboard():
 
     return render_template("manager/dashboard.html", classes=classes, stats=stats)
 
+
 @manager_bp.route("/class/create", methods=["GET", "POST"])
 def create_class():
-    """Yeni Yemek Kursu oluşturma rotası."""
+    """Handles creating a new Cooking Class."""
     if request.method == "POST":
         title = request.form.get("title", "").strip()
         cuisine = request.form.get("cuisine", "").strip()
@@ -136,13 +126,11 @@ def create_class():
         ingredients = request.form.get("ingredients", "").strip()
         description = request.form.get("description", "").strip()
 
-        # En az 4 malzeme kontrolü (virgülle ayrılmış)
         ing_list = [i.strip() for i in ingredients.split(",") if i.strip()]
         if len(ing_list) < 4:
             flash("Please enter at least 4 main ingredients (separated by commas).", "danger")
             return render_template("manager/create_class.html")
 
-        # 3 adet tanıtım fotoğrafının yüklenmesi
         photos = []
         for i in range(1, 4):
             file = request.files.get(f"photo_{i}")
@@ -176,7 +164,7 @@ def create_class():
 
 @manager_bp.route("/class/edit/<int:class_id>", methods=["GET", "POST"])
 def edit_class(class_id):
-    """Ders düzenleme rotası (yalnızca hiç seans açılmamışsa izin verir)."""
+    """Edits a class (allowed only if no sessions have been scheduled yet)."""
     if not can_edit_class(class_id):
         flash("You cannot edit this class because class sessions have already been scheduled for it.", "warning")
         return redirect(url_for("manager.dashboard"))
@@ -208,7 +196,7 @@ def edit_class(class_id):
 
 @manager_bp.route("/session/create/<int:class_id>", methods=["GET", "POST"])
 def create_session(class_id):
-    """Mevcut bir kursa yeni ders seansı ekleme rotası."""
+    """Adds a new scheduled time slot for an existing cooking class."""
     if request.method == "POST":
         day_of_week = request.form.get("day_of_week")
         start_time = request.form.get("start_time")
@@ -225,7 +213,7 @@ def create_session(class_id):
 
 @manager_bp.route("/session/delete/<int:session_id>", methods=["POST"])
 def cancel_session(session_id):
-    """Seansı iptal etme / silme rotası (yalnızca hiç kayıtlı öğrenci yoksa izin verir)."""
+    """Cancels a session (allowed only if no students are currently enrolled)."""
     ok, msg = delete_class_session(session_id)
     flash(msg, "success" if ok else "danger")
     return redirect(url_for("manager.dashboard"))

@@ -1,9 +1,9 @@
 from database.database import close_db, get_db
-from utils import is_session_past  # <--- Tarih/saat kontrolü eklendi
+from utils import is_session_past
 
 
 def get_all_cooking_classes():
-    """Ana sayfa için tüm kursları ortalama puanlarıyla ve oluşturan Manager adı ile getirir."""
+    """Retrieves all classes with average ratings and Manager details for the homepage."""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("""
@@ -24,7 +24,7 @@ def get_all_cooking_classes():
 
 
 def get_class_by_id(class_id):
-    """Kurs detay sayfasında kursun tüm bilgilerini, Manager adını ve seanslarını dinamik zaman kontrolüyle getirir."""
+    """Retrieves detailed class information, Manager details, and sessions with time check."""
     conn = get_db()
     cursor = conn.cursor()
 
@@ -75,17 +75,14 @@ def get_class_by_id(class_id):
         session_id = s_dict["id"]
         max_cap = s_dict["max_capacity"]
 
-        # Seansın zamanı geçmiş mi kontrol et
         is_past = is_session_past(day, time_str)
         s_dict["is_past"] = is_past
 
         if is_past:
-            # Ders saati geçtiyse YENİ HAFTA DÖNGÜSÜ İÇİN KAPASİTE TAZELENİR (0/MAX Boş)
             s_dict["enrolled_count"] = 0
             s_dict["available_slots"] = max_cap
             s_dict["waiting_count"] = 0
         else:
-            # Gelecekteki aktif seans ise veritabanındaki kayıtları say
             cursor.execute(
                 "SELECT COUNT(*) FROM enrollments WHERE session_id = ?",
                 (session_id,),
@@ -109,7 +106,7 @@ def get_class_by_id(class_id):
 
 
 def get_manager_classes(manager_id):
-    """Yöneticinin açtığı kursları, seanslarını ve seansa kayıtlı öğrencilerin bilgilerini getirir."""
+    """Retrieves classes created by the manager, including session and enrollment details."""
     conn = get_db()
     cursor = conn.cursor()
 
@@ -138,7 +135,6 @@ def get_manager_classes(manager_id):
         for s in sessions:
             s_dict = dict(s)
 
-            # Seansa kayıtlı olan öğrencilerin ad, soyad ve e-postasını çek
             cursor.execute(
                 """
                 SELECT u.first_name, u.last_name, u.email 
@@ -150,7 +146,6 @@ def get_manager_classes(manager_id):
             )
             s_dict["students"] = cursor.fetchall()
 
-            # Bekleme listesindeki öğrencileri sırayla çek
             cursor.execute(
                 """
                 SELECT u.first_name, u.last_name, u.email 
@@ -165,7 +160,6 @@ def get_manager_classes(manager_id):
 
             sessions_with_students.append(s_dict)
 
-        # Dersi düzenleyip düzenleyemeyeceğini kontrol et
         can_edit = len(sessions) == 0
 
         manager_data.append({
@@ -192,7 +186,7 @@ def create_cooking_class(
     photo_2,
     photo_3,
 ):
-    """Yeni yemek kursu açar."""
+    """Creates a new cooking class entry."""
     conn = get_db()
     cursor = conn.cursor()
     try:
@@ -225,7 +219,7 @@ def create_cooking_class(
 
 
 def can_edit_class(class_id):
-    """Dersin henüz hiç seansı yoksa True döner (Düzenlenebilir)."""
+    """Returns True if the class has no scheduled sessions (editable)."""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
@@ -248,7 +242,7 @@ def update_cooking_class(
     ingredients,
     description,
 ):
-    """Ders bilgilerini günceller. Seansı varsa güncellenmez."""
+    """Updates class details if no sessions are attached."""
     if not can_edit_class(class_id):
         return (
             False,
@@ -288,7 +282,7 @@ def update_cooking_class(
 def create_class_session(
     class_id, day_of_week, start_time, kitchen_name, max_capacity=10
 ):
-    """Kursa yeni seans ekler. Mutfak, gün ve saat çakışmasını kontrol eder."""
+    """Adds a new session to a class after validating kitchen schedule conflicts."""
     conn = get_db()
     cursor = conn.cursor()
     try:
@@ -332,12 +326,11 @@ def create_class_session(
 
 
 def delete_class_session(session_id):
-    """Seansı siler/iptal eder. Ancak kaydolmuş öğrenci varsa engel olur."""
+    """Deletes a session if no students are currently enrolled."""
     conn = get_db()
     cursor = conn.cursor()
 
     try:
-        # Seansa kayıtlı öğrenci sayısını kontrol et
         cursor.execute(
             "SELECT COUNT(*) as count FROM enrollments WHERE session_id = ?",
             (session_id,),
@@ -351,7 +344,6 @@ def delete_class_session(session_id):
                 "Cannot delete or modify session because students have already enrolled in it.",
             )
 
-        # Öğrenci yoksa seansı ve varsa bekleme listesini temizle
         cursor.execute(
             "DELETE FROM waiting_list WHERE session_id = ?", (session_id,)
         )

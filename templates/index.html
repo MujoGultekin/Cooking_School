@@ -17,7 +17,7 @@
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="badge bg-primary">{{ c.cuisine }}</span>
                         
-                        <!-- RATING KOŞULLU GÖSTERİM DÜZELTMESİ -->
+                        {# Display rating badge conditionally if ratings exist #}
                         {% if c.total_ratings and c.total_ratings > 0 %}
                             <span class="badge badge-rating bg-warning text-dark">⭐ {{ "%.1f"|format(c.avg_rating) }}</span>
                         {% else %}

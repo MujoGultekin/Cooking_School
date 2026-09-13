@@ -1,13 +1,13 @@
 import os
 import sqlite3
 
-# Proje ana dizinini ve veritabanı dosya yolunu belirleme
+# Define base project directory and database path
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATABASE = os.path.join(BASE_DIR, "culinary.db")
 
 
 def get_db():
-    """Veritabanı bağlantısı açar ve Row factory ile FOREIGN KEY kısıtlamalarını etkinleştirir."""
+    """Opens a database connection, configures Row factory, and enables FOREIGN KEY constraints."""
     conn = sqlite3.connect(DATABASE, timeout=10.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -15,6 +15,6 @@ def get_db():
 
 
 def close_db(conn):
-    """Açık olan veritabanı bağlantısını kapatır."""
+    """Closes an active database connection."""
     if conn:
         conn.close()

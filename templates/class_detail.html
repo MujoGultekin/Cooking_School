@@ -4,7 +4,7 @@
 
 {% block content %}
 <article class="mb-5">
-    <!-- Başlık ve Özet Bilgiler -->
+    {# Header and summary details #}
     <header class="mb-4">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
             <div>
@@ -17,7 +17,7 @@
                 </p>
             </div>
             <div class="text-end">
-                <!-- RATING KOŞULLU GÖSTERİM DÜZELTMESİ -->
+                {# Display average rating badge conditionally #}
                 {% if class_data.total_ratings and class_data.total_ratings > 0 %}
                     <span class="badge bg-warning text-dark fs-6 p-2">⭐ {{ "%.1f"|format(class_data.avg_rating) }} / 5.0</span>
                 {% else %}
@@ -33,7 +33,7 @@
         </div>
     </header>
 
-    <!-- 3'lü Fotoğraf Galerisi -->
+    {# 3-photo gallery #}
     <section class="row g-3 mb-4">
         <div class="col-md-4">
             <img src="{{ class_data.photo_1 }}" class="img-fluid w-100 gallery-img rounded" alt="Promotional Photo 1">
@@ -47,7 +47,7 @@
     </section>
 
     <div class="row g-4">
-        <!-- Kurs Açıklaması ve Malzemeler -->
+        {# Class description and ingredient list #}
         <section class="col-lg-7">
             <div class="card card-culinary p-4 mb-4">
                 <h2 class="h4 fw-bold mb-3">About the Class</h2>
@@ -62,7 +62,7 @@
             </div>
         </section>
 
-        <!-- Seans Sebebi ve Kayıt Paneli -->
+        {# Session schedule and enrollment panel #}
         <section class="col-lg-5">
             <div class="card card-culinary p-4">
                 <h2 class="h4 fw-bold mb-3">Scheduled Sessions</h2>

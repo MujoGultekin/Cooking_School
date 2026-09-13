@@ -1,8 +1,9 @@
 from werkzeug.security import check_password_hash, generate_password_hash
 from database.database import close_db, get_db
 
+
 def get_user_by_id(user_id):
-    """ID ile kullanıcı nesnesi verisini getirir."""
+    """Retrieves user profile data by ID."""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
@@ -10,8 +11,9 @@ def get_user_by_id(user_id):
     close_db(conn)
     return user
 
+
 def get_user_by_email(email):
-    """Email adresi ile kullanıcı getirir."""
+    """Retrieves user profile data by email address."""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
@@ -19,22 +21,20 @@ def get_user_by_email(email):
     close_db(conn)
     return user
 
+
 def check_login(email, password):
-    """Kullanıcı giriş kontrolü yapar."""
+    """Validates user credentials against stored password hashes."""
     user = get_user_by_email(email)
     if user and check_password_hash(user["password"], password):
         return user
     return None
 
+
 def create_user(email, first_name, last_name, password, role="Student"):
-    """
-    Yeni kullanıcı kaydı oluşturur.
-    Role: 'Manager' veya 'Student' olabilir.
-    """
+    """Registers a new user account with hashed password and role assignment."""
     conn = get_db()
     cursor = conn.cursor()
 
-    # Email eşsiz olmalı
     cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
     if cursor.fetchone():
         close_db(conn)
@@ -42,10 +42,13 @@ def create_user(email, first_name, last_name, password, role="Student"):
 
     hashed_password = generate_password_hash(password)
     try:
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO users (email, first_name, last_name, password, role)
             VALUES (?, ?, ?, ?, ?)
-        """, (email, first_name, last_name, hashed_password, role))
+        """,
+            (email, first_name, last_name, hashed_password, role),
+        )
         conn.commit()
         close_db(conn)
         return True, "Account created successfully!"
