@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import current_app, flash, redirect, url_for
+from flask import config, current_app, flash, redirect, url_for
 from flask_login import current_user
+
+from config import SIMULATED_DAY, SIMULATED_TIME
 
 # Haftanın günleri haritası (1: Pazartesi, 7: Pazar)
 DAYS_ORDER = {
@@ -23,8 +25,8 @@ def get_current_simulated_datetime():
     now = datetime.now()
     
     try:
-        simulated_day_str = current_app.config.get("SIMULATED_DAY", "Monday")
-        simulated_time_str = current_app.config.get("SIMULATED_TIME", "09:00")
+        simulated_day_str = getattr(config, "SIMULATED_DAY", "Monday")
+        simulated_time_str = getattr(config, "SIMULATED_TIME", "11:00")
     except RuntimeError:
         return now
 

@@ -9,7 +9,7 @@ from dao.enrollment_dao import (
     leave_waiting_list,
 )
 from dao.rating_dao import add_class_rating
-from utils import can_cancel_enrollment, is_session_past, student_required  # Simüle zaman fonksiyonları
+from utils import can_cancel_enrollment, get_current_simulated_datetime, is_session_past, student_required  # Simüle zaman fonksiyonları
 
 student_bp = Blueprint("student", __name__, url_prefix="/student")
 
@@ -26,23 +26,32 @@ def check_student_role():
 @student_bp.route("/profile")
 @login_required
 def profile():
-    """Öğrenci profili: Aktif kayıtlar, geçmiş dersler ve bekleme listesi durumu."""
     raw_enrollments = get_student_enrollments(current_user.id)
     waiting_sessions = get_student_waiting_list(current_user.id)
 
     processed_enrollments = []
+    print("\n--- DEBUG START ---")
+    sim_now = get_current_simulated_datetime()
+    print(f"1. SIMULE ZAMAN: {sim_now} (Day Index: {sim_now.isoweekday()})")
+
     for item in raw_enrollments:
-        # SQLite Row objesini değiştirilebilir dict'e çeviriyoruz
         enroll_data = dict(item)
 
         day = enroll_data.get("day_of_week")
         time_str = enroll_data.get("start_time")
 
-        # Zaman kontrollerini yapıp dict'e ekliyoruz
-        enroll_data["is_past"] = is_session_past(day, time_str)
+        is_past_val = is_session_past(day, time_str)
+        enroll_data["is_past"] = is_past_val
         enroll_data["can_cancel"] = can_cancel_enrollment(day, time_str)
 
+        print(
+            f"2. DERS: {enroll_data.get('class_title')} | "
+            f"Gun: '{day}' | Saat: '{time_str}' | "
+            f"is_past sonucu: {is_past_val}"
+        )
+
         processed_enrollments.append(enroll_data)
+    print("--- DEBUG END ---\n")
 
     return render_template(
         "student/profile.html",
