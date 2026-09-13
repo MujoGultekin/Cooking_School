@@ -77,5 +77,5 @@ The system assumes the current system time is set to:
    python app.py
 
 4. Open browser at:
-   http://127.0.0.1:5000/
+   https://mujogltkn.pythonanywhere.com/
 ========================================================================
