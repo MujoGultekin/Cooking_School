@@ -46,25 +46,29 @@ def init_database():
          '/static/uploads/pastry1.jpg', '/static/uploads/pastry2.jpg', '/static/uploads/pastry3.jpg');
     """)
 
-    # 3. DERS SEANSLARI (Geçmiş, Gelecek, Dolu ve Boş Seanslar)
+    # 3. DERS SEANSLARI (Geçmiş Tamamlanmış ve Aktif Seanslar)
     cursor.executescript("""
-        INSERT INTO class_sessions (class_id, day_of_week, start_time, kitchen_name, max_capacity) VALUES
-        -- Geçmiş Seanslar (Simüle zaman Thursday 14:00 kabul edilir)
-        (1, 'Monday', '10:00', 'Kitchen Alpha', 2),    -- ID 1: Dolu ve Geçmiş (Pasta)
-        (3, 'Wednesday', '16:00', 'Kitchen Beta', 10),  -- ID 2: Geçmiş (Taco)
+        INSERT INTO class_sessions (id, class_id, day_of_week, start_time, kitchen_name, max_capacity) VALUES
+        -- Geçmişte Kalmış ve Puanlaması Çoktan Bitmiş Seanslar (Tarihi eski)
+        (10, 1, 'Sunday', '09:00', 'Kitchen Alpha', 10),  -- Çoktan tamamlanmış Pasta Seansı
+        (20, 3, 'Sunday', '12:00', 'Kitchen Beta', 10),   -- Çoktan tamamlanmış Taco Seansı
 
-        -- Gelecek Seanslar
-        (1, 'Friday', '11:00', 'Kitchen Alpha', 10),   -- ID 3: İptal edilebilir / Gelecek
-        (2, 'Thursday', '18:00', 'Kitchen Main', 2),   -- ID 4: Dolu Gelecek Seans (Bekleme listesi testi için)
-        (4, 'Saturday', '14:00', 'Kitchen Beta', 8);   -- ID 5: Düzenlenebilir / Kayıtsız Seans
+        -- Aktif Simülasyon Seansları (Şu an kayıtlı oldukları)
+        (1, 1, 'Monday', '10:00', 'Kitchen Alpha', 2),    -- ID 1: Pazartesi 10:00 (Pasta)
+        (2, 3, 'Wednesday', '16:00', 'Kitchen Beta', 10),  -- ID 2: Çarşamba 16:00 (Taco)
+        (3, 1, 'Friday', '11:00', 'Kitchen Alpha', 10),   -- ID 3: Cuma 11:00
+        (4, 2, 'Thursday', '18:00', 'Kitchen Main', 2);   -- ID 4: Perşembe 18:00
     """)
 
     # 4. KAYITLAR (Enrollments)
     cursor.executescript("""
         INSERT INTO enrollments (student_id, session_id) VALUES
-        (3, 1), (4, 1), -- Session 1 Doldu (Capacity: 2)
-        (3, 2),         -- Alice Taco dersine katıldı
-        (3, 4), (4, 4); -- Session 4 Doldu (Capacity: 2)
+        -- Eski tamamlanmış ders kayıtları
+        (3, 10), (4, 20),
+
+        -- ŞU ANKİ AKTİF KAYITLAR (Simüle edilecek dersler - Puanları HENÜZ YOK)
+        (3, 1), (4, 1), -- Alice ve Bob Monday 10:00 Pasta dersinde
+        (3, 2);         -- Alice Wednesday 16:00 Taco dersinde
     """)
 
     # 5. BEKLEME LİSTESİ (Waiting List - Prova Finale Testi İçin)
@@ -76,9 +80,11 @@ def init_database():
     # 6. DERS DEĞERLENDİRMELERİ (Ratings)
     cursor.executescript("""
         INSERT INTO ratings (student_id, session_id, score) VALUES
-        (3, 1, 5), -- Alice Pasta dersine 5 verdi
-        (4, 1, 4), -- Bob Pasta dersine 4 verdi
-        (3, 2, 5); -- Alice Taco dersine 5 verdi
+        -- Sadece çoktan bitmiş ESKİ seansların puanları (Session 10 ve 20)
+        (3, 10, 5), -- Alice eski Pazar dersine 5 puan vermişti
+        (4, 20, 4); -- Bob eski Pazar dersine 4 puan vermişti
+        
+        -- DIKKAT: Session 1 ve Session 2 (Aktif dersler) için BURAYA HIÇBIR KAYIT EKLENMEDI!
     """)
 
     conn.commit()
