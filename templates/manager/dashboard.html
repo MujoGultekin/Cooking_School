@@ -85,14 +85,21 @@
                                         {% endif %}
                                     </td>
                                     <td class="text-end">
-                                        <!-- KAYITLI ÖĞRENCİ LİSTESİ MODAL BUTONU -->
+                                        <!-- KAYITLI ÖĞRENCİ LİSTESİ BUTONU -->
                                         {% if s.enrolled_count > 0 %}
                                             <button type="button" class="btn btn-sm btn-outline-info me-1" data-bs-toggle="modal" data-bs-target="#studentsModal{{ s.id }}">
-                                                👥 View Students ({{ s.enrolled_count }})
+                                                👥 Enrolled Students ({{ s.enrolled_count }})
                                             </button>
                                         {% endif %}
 
-                                        <!-- SEANS İPTALİ / ENGEL -->
+                                        <!-- BEKLEME LİSTESİ BUTONU (Yalnızca yedek öğrenci varsa belirginleşir) -->
+                                        {% if s.waiting_students and s.waiting_students|length > 0 %}
+                                            <button type="button" class="btn btn-sm btn-outline-warning text-dark me-1" data-bs-toggle="modal" data-bs-target="#studentsModal{{ s.id }}">
+                                                ⏳ Waiting List ({{ s.waiting_students|length }})
+                                            </button>
+                                        {% endif %}
+
+                                        <!-- SEANS İPTALİ -->
                                         {% if s.enrolled_count == 0 %}
                                             <form action="{{ url_for('manager.cancel_session', session_id=s.id) }}" method="POST" class="d-inline">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this session?')">Cancel Session</button>
@@ -112,53 +119,63 @@
                 </div>
             </article>
 
-            <!-- ÖĞRENCİ LİSTESİ MODAL PENCERELERİ (TABLONUN VE ARTICLE'IN DIŞINDA) -->
+            <!-- ÖĞRENCİ & BEKLEME LİSTESİ MODAL PENCERELERİ -->
             {% for s in item.sessions %}
-                {% if s.enrolled_count > 0 %}
+                {% if s.enrolled_count > 0 or (s.waiting_students and s.waiting_students|length > 0) %}
                     <div class="modal fade" id="studentsModal{{ s.id }}" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-dialog modal-dialog-centered modal-lg">
                             <div class="modal-content text-start">
                                 <div class="modal-header">
-                                    <h5 class="modal-title fw-bold">Enrolled Students</h5>
+                                    <h5 class="modal-title fw-bold">Session Attendance & Waiting List</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
-                                    <p class="small text-muted mb-2">
-                                        Session: <strong>{{ s.day_of_week }} at {{ s.start_time[:5] if s.start_time else s.start_time }}</strong> ({{ s.kitchen_name }})
-                                    </p>
-                                    <p class="small text-muted mb-3">
-                                        Total Enrolled: <strong>{{ s.enrolled_count }} / {{ s.max_capacity }}</strong>
-                                    </p>
-                                    
-                                    <h6 class="fw-bold mb-2">Enrolled List</h6>
-                                    <ul class="list-group mb-3">
-                                        {% for student in s.students %}
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong>{{ student.first_name }} {{ student.last_name }}</strong>
-                                                    <br><small class="text-muted">{{ student.email }}</small>
-                                                </div>
-                                                <span class="badge bg-success">Enrolled</span>
-                                            </li>
-                                        {% else %}
-                                            <li class="list-group-item text-muted">No students enrolled yet.</li>
-                                        {% endfor %}
-                                    </ul>
+                                    <div class="p-2 bg-light rounded mb-3">
+                                        <span class="me-3">Session: <strong>{{ s.day_of_week }} at {{ s.start_time[:5] if s.start_time else s.start_time }}</strong></span>
+                                        <span class="me-3">Kitchen: <strong>{{ s.kitchen_name }}</strong></span>
+                                        <span>Capacity: <strong>{{ s.enrolled_count }} / {{ s.max_capacity }}</strong></span>
+                                    </div>
 
-                                    {% if s.waiting_students %}
-                                        <h6 class="fw-bold mb-2">Waiting List</h6>
-                                        <ul class="list-group">
-                                            {% for w in s.waiting_students %}
-                                                <li class="list-group-item d-flex justify-content-between align-items-center bg-light">
-                                                    <div>
-                                                        <strong>{{ w.first_name }} {{ w.last_name }}</strong>
-                                                        <br><small class="text-muted">{{ w.email }}</small>
-                                                    </div>
-                                                    <span class="badge bg-warning text-dark">Queue #{{ loop.index }}</span>
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
-                                    {% endif %}
+                                    <div class="row g-3">
+                                        <!-- Enrolled Students Column -->
+                                        <div class="col-md-6">
+                                            <h6 class="fw-bold text-success mb-2">
+                                                ✅ Enrolled Students ({{ s.enrolled_count }})
+                                            </h6>
+                                            <ul class="list-group">
+                                                {% for student in s.students %}
+                                                    <li class="list-group-item">
+                                                        <div class="fw-bold">{{ student.first_name }} {{ student.last_name }}</div>
+                                                        <small class="text-muted">{{ student.email }}</small>
+                                                    </li>
+                                                {% else %}
+                                                    <li class="list-group-item text-muted small">No enrolled students.</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+
+                                        <!-- Waiting List Column -->
+                                        <div class="col-md-6">
+                                            <h6 class="fw-bold text-warning text-dark mb-2">
+                                                ⏳ Waiting List ({{ s.waiting_students|length if s.waiting_students else 0 }})
+                                            </h6>
+                                            <ul class="list-group">
+                                                {% if s.waiting_students %}
+                                                    {% for w in s.waiting_students %}
+                                                        <li class="list-group-item d-flex justify-content-between align-items-center bg-light">
+                                                            <div>
+                                                                <div class="fw-bold">{{ w.first_name }} {{ w.last_name }}</div>
+                                                                <small class="text-muted">{{ w.email }}</small>
+                                                            </div>
+                                                            <span class="badge bg-warning text-dark">Queue #{{ loop.index }}</span>
+                                                        </li>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <li class="list-group-item text-muted small">No students on the waiting list.</li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

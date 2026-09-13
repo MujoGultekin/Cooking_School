@@ -1,5 +1,3 @@
 !) simule edilmis gun eklencek (eski config mantigi) 
-!) "For each session, they must be able to see the list of enrolled students, the total number of enrolled students" bu yok manager dashboardinda
-!) "Cooking school managers must be able to view the waiting list for each of their class sessions" bu yok
 !) prova finaledeki ekstra alt basliklar yok 
 !) sqlite file ne oluyor onu sor
